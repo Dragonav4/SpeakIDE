@@ -52,3 +52,8 @@ kotlin {
 tasks.test {
     useJUnitPlatform()
 }
+
+
+intellijPlatform {
+    instrumentCode = false
+}
