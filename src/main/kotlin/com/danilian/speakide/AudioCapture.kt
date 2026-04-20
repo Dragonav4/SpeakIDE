@@ -1,62 +1,51 @@
 package com.danilian.speakide
 
-import javax.sound.sampled.AudioFormat
-import javax.sound.sampled.AudioSystem
-import javax.sound.sampled.DataLine
-import javax.sound.sampled.TargetDataLine
-import java.util.concurrent.atomic.AtomicBoolean
+import be.tarsos.dsp.AudioEvent
+import be.tarsos.dsp.AudioProcessor
+import be.tarsos.dsp.SilenceDetector
+import be.tarsos.dsp.io.jvm.AudioDispatcherFactory
+import com.danilian.speakide.audio.SilenceTimeoutProcessor
 
-class AudioCapture {
 
-    private val format = AudioFormat(
-        AudioFormat.Encoding.PCM_SIGNED,
-        16_000f,
-        16,
-        1,
-        2,
-        16_000f,
-        false
-    )
+class AudioCapture(
+    private val silenceThresholdDb: Double = -70.0,
+    private val silenceDurationMs: Long = 2000L,
+    private val onSilenceTimeout: () -> Unit = {},
+    private val onData: (ByteArray) -> Unit
+) {
 
-    private var line: TargetDataLine? = null
-    private val running = AtomicBoolean(false)
+    val silenceDetector = SilenceDetector(silenceThresholdDb, false)
 
-    fun start(onData: (ByteArray) -> Unit) {
-        val info = DataLine.Info(TargetDataLine::class.java, format)
-
-        check(AudioSystem.isLineSupported(info)) {
-            "Microphone is unavailable or not supported: $info"
-        }
-
-        val dataLine = (AudioSystem.getLine(info) as TargetDataLine).also {
-            it.open(format)
-            it.start()
-            line = it
-        }
-
-        running.set(true)
-
-        Thread({
-            val buffer = ByteArray(4096)
-            try {
-                while (running.get()) {
-                    val bytesRead = dataLine.read(buffer, 0, buffer.size)
-                    if (bytesRead > 0) {
-                        onData(buffer.copyOf(bytesRead))
-                    }
-                }
-            } finally {
-                dataLine.stop()
-                dataLine.close()
+    private val dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(
+        1024, 0
+    ).also { d ->
+        d.addAudioProcessor(silenceDetector)
+        d.addAudioProcessor(SilenceTimeoutProcessor(
+            silenceDetector = silenceDetector,
+            silenceThresholdDb = silenceThresholdDb,
+            silenceDurationMs = silenceDurationMs,
+            onSilenceTimeout = onSilenceTimeout
+        ))
+        d.addAudioProcessor(object : AudioProcessor {
+            override fun process(event: AudioEvent): Boolean {
+                onData(event.byteBuffer.copyOf())
+                return true
             }
-        }, "speakide-audio-capture").apply {
+
+            override fun processingFinished() = Unit
+        })
+    }
+
+    fun start() {
+        Thread(dispatcher, "speakide-audio-capture").apply {
             isDaemon = true
             start()
         }
     }
 
-    fun stop() {
-        running.set(false)
-        line?.stop()
-    }
+    fun stop() = dispatcher.stop()
+
+    fun currentDb(): Double = silenceDetector.currentSPL()
+
+    fun isSilent(): Boolean = currentDb() < silenceThresholdDb
 }

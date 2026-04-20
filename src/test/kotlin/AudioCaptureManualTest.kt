@@ -2,26 +2,30 @@ import com.danilian.speakide.AudioCapture
 
 
 fun main() {
-    val capture = AudioCapture()
+    var capture: AudioCapture? = null
+    capture = AudioCapture(
+        silenceThresholdDb = -50.0,
+        silenceDurationMs = 2000L,
+        onSilenceTimeout = {
+            Thread { capture?.stop() }.start()
+        }) { }
 
-    capture.start { chunk ->
-        val rms = calculateRms(chunk)
-        val bars = "█".repeat((rms / 100).toInt().coerceIn(0, 40))
-        println(bars)
-    }
+    val monitor = Thread({
+        while (!Thread.currentThread().isInterrupted) {
+            val db = capture.currentDb()
+            val bars = "█".repeat(((db + 100) / 2).toInt().coerceIn(0, 40))
+            println("%6.1f dB | %s".format(db, bars))
+            Thread.sleep(100)
+        }
+    }, "monitor").apply { isDaemon = true }
 
-    println("Recording 5sec...")
-    Thread.sleep(5000)
+
+    println("Recording...")
+    capture.start()
+    monitor.start()
+
+    Thread.sleep(15_000)
 
     capture.stop()
     println("Ready")
-}
-
-fun calculateRms(pcm: ByteArray): Double {
-    var sum = 0.0
-    for (i in pcm.indices step 2) {
-        val sample = (pcm[i].toInt() and 0xFF) or (pcm[i + 1].toInt() shl 8)
-        sum += sample * sample
-    }
-    return Math.sqrt(sum / (pcm.size / 2))
 }
