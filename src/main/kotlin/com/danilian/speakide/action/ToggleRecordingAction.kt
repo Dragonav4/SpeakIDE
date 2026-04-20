@@ -1,25 +1,24 @@
 package com.danilian.speakide.action
 
-import com.intellij.notification.NotificationGroupManager
-import com.intellij.notification.NotificationType
+import com.danilian.speakide.AudioCapture
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAware
 
 class ToggleRecordingAction : AnAction(), DumbAware {
 
-    override fun actionPerformed(e: AnActionEvent) {
-        val project = e.project
+    private var capture: AudioCapture? = null
 
-        // TODO replace with RecordingOrchestrator.toggle() in the future
-        NotificationGroupManager.getInstance()
-            .getNotificationGroup("SpeakIDE")
-            .createNotification(
-                "SpeakIDE",
-                "Shortcut works ;)",
-                NotificationType.INFORMATION
-            )
-            .notify(project)
+    override fun actionPerformed(e: AnActionEvent) {
+        if (capture == null) {
+            capture = AudioCapture(
+                onData = { /* TODO: data for STT */ },
+                onError = { capture = null }
+            ).also { it.start() }
+        } else {
+            capture?.stop()
+            capture = null
+        }
     }
 
     override fun update(e: AnActionEvent) {
