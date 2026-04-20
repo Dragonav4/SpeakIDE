@@ -8,7 +8,13 @@ fun main() {
         silenceDurationMs = 2000L,
         onSilenceTimeout = {
             Thread { capture?.stop() }.start()
-        }) { }
+        },
+        onData = { },
+        onError = { e ->
+            println("ERROR: ${e.message}")
+            capture?.stop()
+        }
+    )
 
     val monitor = Thread({
         while (!Thread.currentThread().isInterrupted) {
