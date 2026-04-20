@@ -44,5 +44,5 @@ bin/
 ### Mac OS ###
 .DS_Store
 
-/docs
+# /docs
 CLAUDE.md
