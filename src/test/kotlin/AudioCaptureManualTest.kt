@@ -2,8 +2,13 @@ import com.danilian.speakide.AudioCapture
 
 
 fun main() {
-    val capture = AudioCapture { chunk ->
-    }
+    var capture: AudioCapture? = null
+    capture = AudioCapture(
+        silenceThresholdDb = -50.0,
+        silenceDurationMs = 2000L,
+        onSilenceTimeout = {
+            Thread { capture?.stop() }.start()
+        }) { }
 
     val monitor = Thread({
         while (!Thread.currentThread().isInterrupted) {
@@ -14,11 +19,12 @@ fun main() {
         }
     }, "monitor").apply { isDaemon = true }
 
-    println("Recording 5 seconds... Press Ctrl+C to stop. ")
+
+    println("Recording...")
     capture.start()
     monitor.start()
 
-    Thread.sleep(5000)
+    Thread.sleep(15_000)
 
     capture.stop()
     println("Ready")
