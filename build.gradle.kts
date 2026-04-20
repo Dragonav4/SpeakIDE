@@ -32,6 +32,8 @@ dependencies {
     // Models are downloaded on first use (~50 MB for the small English model)
     implementation("com.alphacephei:vosk:0.3.45")
 
+    implementation("com.github.axet:TarsosDSP:2.4-1")
+
     // Testing
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.13.13")
