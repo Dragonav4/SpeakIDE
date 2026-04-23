@@ -62,7 +62,19 @@ class AudioCapture(
                 )
                 d.addAudioProcessor(object : AudioProcessor {
                     override fun process(event: AudioEvent): Boolean {
-                        onData(event.byteBuffer.copyOf())
+                        val floats = event.floatBuffer
+                        val pcm = ByteArray(floats.size * 2)
+                        for (i in floats.indices) {
+                            var sample = (floats[i] * 32767.0f).toInt()
+                            // Clamp to prevent clipping wrap-around
+                            if (sample > 32767) sample = 32767
+                            if (sample < -32768) sample = -32768
+                            
+                            // Explicitly format as 16-bit Little Endian, which WAV expects
+                            pcm[i * 2] = (sample and 0xFF).toByte()
+                            pcm[i * 2 + 1] = ((sample shr 8) and 0xFF).toByte()
+                        }
+                        onData(pcm)
                         return true
                     }
 

@@ -40,7 +40,12 @@
                 text="SpeakIDE: Toggle Voice Recording"
                 description="Start or stop voice recording; transcribed text is inserted at the cursor">
 <!--                icon="/icons/microphone.svg">-->
-            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt M"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl meta M"/>
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="ctrl meta M"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="ctrl meta M"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl meta R"/>
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="ctrl meta R"/>
+            <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="ctrl meta R"/>
             <add-to-group group-id="ToolsMenu" anchor="last"/>
             <add-to-group group-id="NavBarToolBar" anchor="last"/>
         </action>

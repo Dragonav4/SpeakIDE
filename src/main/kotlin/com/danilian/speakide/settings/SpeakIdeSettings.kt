@@ -25,6 +25,10 @@ class SpeakIdeSettings : PersistentStateComponent<SpeakIdeSettings.State> {
          */
         var silenceRmsThreshold: Float = 500f,
         var voskModelPath: String = "",
+
+        var whisperBaseUrl: String = "https://api.groq.com/openai/v1",
+
+        var whisperModel: String = "whisper-large-v3",
         var showRecordingOverlay: Boolean = true,
         var notifyOnAiCompletion: Boolean = true,
     )
