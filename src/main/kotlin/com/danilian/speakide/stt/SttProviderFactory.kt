@@ -10,7 +10,7 @@ object SttProviderFactory {
     fun create(settings: SpeakIdeSettings = SpeakIdeSettings.getInstance()): SttProvider {
         return when (settings.state.sttProvider) {
             SttProviderOption.VOSK.id -> VoskProvider(settings.state.voskModelPath)
-            else -> OpenAiWhisperProvider()   // default: OpenAI Whisper
+            else -> OpenAiWhisperProvider.create(settings)
         }
     }
 }
