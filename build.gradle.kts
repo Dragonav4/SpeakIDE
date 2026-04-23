@@ -1,7 +1,7 @@
 plugins {
     kotlin("jvm") version "2.3.10"
     kotlin("plugin.serialization") version "2.3.10"
-    id("org.jetbrains.intellij.platform") version "2.14.0"
+    id("org.jetbrains.intellij.platform") version "2.0.1"
 }
 
 group = "com.danilian.speakide"
@@ -43,12 +43,9 @@ dependencies {
     testImplementation("io.ktor:ktor-client-mock:2.3.12")
 
     intellijPlatform {
-        local("/Applications/IntelliJ IDEA.app")
+        intellijIdeaCommunity("2024.3.3")
 
-        // Make ml-llm (AI Assistant) available in the sandbox so the optional
-        // dependency in speakide-ai-assistant.xml resolves and the mic button appears
-        localPlugin(file("${System.getProperty("user.home")}/Library/Application Support/JetBrains/IntelliJIdea2026.1/plugins/ml-llm"))
-
+        instrumentationTools()
         pluginVerifier()
         zipSigner()
     }

@@ -13,7 +13,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.IconLoader
 import kotlinx.coroutines.*
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
@@ -26,27 +25,15 @@ class ToggleRecordingAction : AnAction(), DumbAware {
     private var isRecording = AtomicBoolean(false)
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    // Captured on the EDT at recording start; used by both manual stop and silence auto-stop
-    @Volatile private var activeProject: Project? = null
-    @Volatile private var activeEditor: Editor? = null
-
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project
 
         if (isRecording.compareAndSet(false, true)) {
-            // Capture editor now — AnActionEvent is valid only on the EDT during this call
-            activeProject = project
-            activeEditor = e.getData(CommonDataKeys.EDITOR)
-
             pcmBuffer.clear()
             println("=== SpeakIDE: Recording started ===")
-//            showNotification(project, "SpeakIDE", "Recording started...", NotificationType.INFORMATION)
+            showNotification(project, "SpeakIDE", "Recording started...", NotificationType.INFORMATION)
 
             capture = AudioCapture(
-                onSilenceTimeout = {
-                    println("=== SpeakIDE: Silence timeout — auto-stopping ===")
-                    stopRecording(activeProject, activeEditor)
-                },
                 onData = { chunk -> pcmBuffer.add(chunk) },
                 onError = { ex ->
                     println("=== SpeakIDE: Audio error: ${ex.message} ===")
@@ -55,7 +42,9 @@ class ToggleRecordingAction : AnAction(), DumbAware {
                 }
             ).also { it.start() }
         } else {
-            stopRecording(project, e.getData(CommonDataKeys.EDITOR))
+            // Capture the editor at the moment the user stops recording
+            val editor = e.getData(CommonDataKeys.EDITOR)
+            stopRecording(project, editor)
         }
     }
 
@@ -64,18 +53,16 @@ class ToggleRecordingAction : AnAction(), DumbAware {
 
         capture?.stop()
         capture = null
-        activeProject = null
-        activeEditor = null
 
         val pcm = collectPcm()
-//        println("=== SpeakIDE: Recording stopped. ${pcm.size} bytes captured. ===")
+        println("=== SpeakIDE: Recording stopped. ${pcm.size} bytes captured. ===")
 
         if (pcm.isEmpty()) {
             showNotification(project, "SpeakIDE", "Nothing recorded.", NotificationType.WARNING)
             return
         }
 
-//        showNotification(project, "SpeakIDE", "Recognizing...", NotificationType.INFORMATION)
+        showNotification(project, "SpeakIDE", "Recognizing...", NotificationType.INFORMATION)
         scope.launch { recognize(pcm, project, editor) }
     }
 
@@ -126,14 +113,7 @@ class ToggleRecordingAction : AnAction(), DumbAware {
     }
 
     override fun update(e: AnActionEvent) {
-        val recording = isRecording.get()
         e.presentation.isEnabledAndVisible = true
-        e.presentation.text = if (recording) "SpeakIDE: Stop Recording" else "SpeakIDE: Start Voice Recording"
-        e.presentation.icon = if (recording) ICON_RECORDING else ICON_IDLE
-    }
-
-    companion object {
-        private val ICON_IDLE      = IconLoader.getIcon("/icons/microphone.svg",           ToggleRecordingAction::class.java)
-        private val ICON_RECORDING = IconLoader.getIcon("/icons/microphone_recording.svg", ToggleRecordingAction::class.java)
+        e.presentation.text = if (isRecording.get()) "SpeakIDE: Stop Recording" else "SpeakIDE: Start Voice Recording"
     }
 }
