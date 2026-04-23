@@ -16,11 +16,11 @@ repositories {
 }
 
 dependencies {
-    // Ktor client for OpenAI Whisper API
-    implementation("io.ktor:ktor-client-core:3.1.1")
-    implementation("io.ktor:ktor-client-cio:3.1.1")
-    implementation("io.ktor:ktor-client-content-negotiation:3.1.1")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:3.1.1")
+    // Ktor client for OpenAI Whisper API - using 2.3.12 to avoid conflict with IntelliJ Platform
+    implementation("io.ktor:ktor-client-core:2.3.12")
+    implementation("io.ktor:ktor-client-cio:2.3.12")
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.12")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.12")
 
     // JSON serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
@@ -37,9 +37,10 @@ dependencies {
     // Testing
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("io.ktor:ktor-client-mock:2.3.12")
 
     intellijPlatform {
-        intellijIdeaCommunity("2024.2.1")
+        intellijIdeaCommunity("2024.3.3")
 
         instrumentationTools()
         pluginVerifier()

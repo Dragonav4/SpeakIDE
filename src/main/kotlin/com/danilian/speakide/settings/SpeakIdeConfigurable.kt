@@ -16,7 +16,18 @@ import javax.swing.JPasswordField
 class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
 
     private val settings = SpeakIdeSettings.getInstance().state
-    private val apiKeyField = JPasswordField(SecureStorage.getOpenAiKey() ?: "")
+    private var loadedApiKey = ""
+    private val apiKeyField = JPasswordField()
+    
+    init {
+        com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
+            val key = SecureStorage.getOpenAiKey() ?: ""
+            loadedApiKey = key
+            javax.swing.SwingUtilities.invokeLater {
+                apiKeyField.text = key
+            }
+        }
+    }
     private lateinit var providerCombo: ComboBox<SttProviderOption>
 
     override fun createPanel(): DialogPanel = panel {
@@ -36,19 +47,33 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
                     )
                     .comment("Language hint for transcription. \"auto\" lets the provider detect it")
             }
-            row("OpenAI API Key:") {
-                cell(apiKeyField)
-                    .comment("Your key is stored securely in the system keychain")
-            }.visibleIf(object : ComponentPredicate() {
+            
+            val isWhisperPredicate = object : ComponentPredicate() {
                 override fun invoke() = providerCombo.selectedItem == SttProviderOption.OPENAI_WHISPER
                 override fun addListener(listener: (Boolean) -> Unit) {
                     providerCombo.addActionListener { listener(invoke()) }
                 }
-            })
-            row("Vosk model path:") {
+            }
+
+            row("API Key:") {
+                cell(apiKeyField)
+                    .comment("Stored securely. Required for Whisper API")
+            }.visibleIf(isWhisperPredicate)
+            
+            row("Base URL:") {
+                textField()
+                    .bindText(settings::whisperBaseUrl)
+                    .comment("e.g. https://api.openai.com/v1 or https://api.groq.com/openai/v1")
+            }.visibleIf(isWhisperPredicate)
+
+            row("Model Name:") {
+                textField()
+                    .bindText(settings::whisperModel)
+                    .comment("e.g. whisper-1 (OpenAI) or whisper-large-v3-turbo (Groq)")
+            }.visibleIf(isWhisperPredicate)
+        row("Vosk model path:") {
                 textFieldWithBrowseButton(
-                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor(),
-                    browseDialogTitle = "Select Vosk Model Folder"
+                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor().withTitle("Select Vosk Model Folder")
                 ).bindText(settings::voskModelPath)
                     .comment("Download a model from <a href=\"https://alphacephei.com/vosk/models\">alphacephei.com/vosk/models</a> and point here")
             }.visibleIf(object : ComponentPredicate() {
@@ -85,15 +110,21 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
 
     override fun apply() {
         super.apply()
-        SecureStorage.setOpenAiKey(String(apiKeyField.password))
+        val currentText = String(apiKeyField.password)
+        if (currentText != loadedApiKey) {
+            com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
+                SecureStorage.setOpenAiKey(currentText)
+            }
+            loadedApiKey = currentText
+        }
     }
 
     override fun isModified(): Boolean {
-        return super.isModified() || String(apiKeyField.password) != (SecureStorage.getOpenAiKey() ?: "")
+        return super.isModified() || String(apiKeyField.password) != loadedApiKey
     }
 
     override fun reset() {
         super.reset()
-        apiKeyField.text = SecureStorage.getOpenAiKey() ?: ""
+        apiKeyField.text = loadedApiKey
     }
 }
