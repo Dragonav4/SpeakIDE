@@ -30,7 +30,10 @@ dependencies {
 
     // Vosk — offline speech recognition with a Java API
     // Models are downloaded on first use (~50 MB for the small English model)
-    implementation("com.alphacephei:vosk:0.3.45")
+    // JNA is excluded because IntelliJ Platform already bundles it
+    implementation("com.alphacephei:vosk:0.3.32") {
+        exclude(group = "net.java.dev.jna", module = "jna")
+    }
 
     implementation("com.github.axet:TarsosDSP:2.4-1")
 
@@ -52,10 +55,16 @@ kotlin {
     jvmToolchain(21)
 }
 
+val voskNativeDir = "${rootDir}/libs"
+
 tasks.test {
     useJUnitPlatform()
+    jvmArgs("-Djna.library.path=$voskNativeDir")
 }
 
+tasks.named<JavaExec>("runIde") {
+    jvmArgs("-Djna.library.path=$voskNativeDir")
+}
 
 intellijPlatform {
     instrumentCode = false
