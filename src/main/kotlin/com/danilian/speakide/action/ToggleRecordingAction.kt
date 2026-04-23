@@ -14,6 +14,8 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import kotlinx.coroutines.*
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
 import java.util.concurrent.atomic.AtomicBoolean
 
 class ToggleRecordingAction : AnAction(), DumbAware {
@@ -94,8 +96,13 @@ class ToggleRecordingAction : AnAction(), DumbAware {
                 CaretTextInsertion().insertTextAtCaret(project, editor, text)
             }
         } else {
-            showNotification(project, "SpeakIDE: Recognized", text, NotificationType.INFORMATION)
+            copyToClipboard(text)
+            showNotification(project, "SpeakIDE: Copied to clipboard", text, NotificationType.INFORMATION)
         }
+    }
+
+    private fun copyToClipboard(text: String) {
+        Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null)
     }
 
     private fun showNotification(project: Project?, title: String, content: String, type: NotificationType) {
