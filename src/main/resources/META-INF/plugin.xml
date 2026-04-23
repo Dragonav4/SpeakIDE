@@ -11,6 +11,7 @@
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends optional="true" config-file="speakide-ai-assistant.xml">com.intellij.ml.llm</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- Settings page: Settings > Tools > SpeakIDE -->
@@ -23,14 +24,6 @@
         <!-- Non-secret persistent settings (API key lives in PasswordSafe) -->
         <applicationService
             serviceImplementation="com.danilian.speakide.settings.SpeakIdeSettings"/>
-
-        <!-- Status-bar widget: microphone icon reflects recording state -->
-<!--        <statusBarWidgetFactory-->
-<!--            id="com.danilian.speakide.StatusBarWidget"-->
-<!--            implementation="com.danilian.speakide.ui.SpeakIdeStatusBarWidgetFactory"-->
-<!--            order="after encodingWidget"/>-->
-
-        <!-- Notification group for all SpeakIDE balloons -->
         <notificationGroup id="SpeakIDE" displayType="BALLOON"/>
     </extensions>
 
@@ -38,8 +31,8 @@
         <action id="com.danilian.speakide.ToggleRecording"
                 class="com.danilian.speakide.action.ToggleRecordingAction"
                 text="SpeakIDE: Toggle Voice Recording"
-                description="Start or stop voice recording; transcribed text is inserted at the cursor">
-<!--                icon="/icons/microphone.svg">-->
+                description="Start or stop voice recording; transcribed text is inserted at the cursor"
+                icon="/icons/microphone.svg">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt SLASH"/>
             <keyboard-shortcut keymap="Mac OS X" first-keystroke="ctrl alt SLASH"/>
             <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="ctrl alt SLASH"/>
@@ -47,5 +40,6 @@
             <add-to-group group-id="NavBarToolBar" anchor="last"/>
         </action>
     </actions>
+
 
 </idea-plugin>
