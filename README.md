@@ -6,7 +6,7 @@
 
 ## Demo
 
-![Demo Video](docs/media/video_speakIde.mov)
+![Demo Video](docs/media/video_speakIde.gif)
 
 
 ---
