@@ -17,13 +17,29 @@ repositories {
 
 dependencies {
     // Ktor client for OpenAI Whisper API - using 2.3.12 to avoid conflict with IntelliJ Platform
-    implementation("io.ktor:ktor-client-core:2.3.12")
-    implementation("io.ktor:ktor-client-cio:2.3.12")
-    implementation("io.ktor:ktor-client-content-negotiation:2.3.12")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.12")
+    implementation("io.ktor:ktor-client-core:2.3.12") {
+        exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.slf4j")
+    }
+    implementation("io.ktor:ktor-client-cio:2.3.12") {
+        exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.slf4j")
+    }
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.12") {
+        exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.slf4j")
+    }
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.12") {
+        exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.slf4j")
+    }
 
-    // JSON serialization
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    // JSON serialization (IntelliJ Platform bundles it, so compileOnly will compile but won't be bundled)
+    compileOnly("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
