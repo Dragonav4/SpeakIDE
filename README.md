@@ -138,4 +138,4 @@ Pull requests are welcome. For major changes, open an issue first.
 
 ## License
 
-[MIT](LICENSE)
+[APACHE 2.0](LICENSE)
