@@ -1,0 +1,13 @@
+<idea-plugin>
+    <actions>
+        <action id="com.danilian.speakide.ToggleRecording.AiChat"
+                class="com.danilian.speakide.action.ToggleRecordingAction"
+                text="SpeakIDE: Voice Input"
+                description="Start or stop voice recording; transcribed text is inserted at the cursor"
+                icon="/icons/microphone.svg">
+            <add-to-group group-id="AIAssistant.ToolWindow.Chat.Input.Left"
+                          anchor="after"
+                          relative-to-action="AIAssistant.Chat.Toggle.Chat.Mode"/>
+        </action>
+    </actions>
+</idea-plugin>
