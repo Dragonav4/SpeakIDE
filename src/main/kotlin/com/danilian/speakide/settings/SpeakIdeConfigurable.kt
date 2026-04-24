@@ -99,13 +99,6 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
             }
         }
 
-        group("Notifications") {
-            row {
-                checkBox("Notify when AI assistant finishes responding")
-                    .bindSelected(settings::notifyOnAiCompletion)
-                    .comment("Experimental — sends a balloon when the AI Chat response completes")
-            }
-        }
     }
 
     override fun apply() {

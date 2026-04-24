@@ -4,6 +4,7 @@ import com.danilian.speakide.AudioCapture
 import com.danilian.speakide.settings.SpeakIdeSettings
 import com.danilian.speakide.stt.SttProviderFactory
 import com.danilian.speakide.textInsertion.CaretTextInsertion
+import com.danilian.speakide.ui.RecordingOverlay
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
@@ -25,6 +26,7 @@ class ToggleRecordingAction : AnAction(), DumbAware {
     private val pcmBuffer = mutableListOf<ByteArray>()
     private var isRecording = AtomicBoolean(false)
     private val scope = CoroutineScope(Dispatchers.IO)
+    private val overlay = RecordingOverlay()
 
     // Captured on the EDT at recording start; used by both manual stop and silence auto-stop
     @Volatile private var activeProject: Project? = null
@@ -34,19 +36,27 @@ class ToggleRecordingAction : AnAction(), DumbAware {
         val project = e.project
 
         if (isRecording.compareAndSet(false, true)) {
-            // Capture editor now — AnActionEvent is valid only on the EDT during this call
             activeProject = project
             activeEditor = e.getData(CommonDataKeys.EDITOR)
 
+            val settings = SpeakIdeSettings.getInstance().state
             pcmBuffer.clear()
             println("=== SpeakIDE: Recording started ===")
-//            showNotification(project, "SpeakIDE", "Recording started...", NotificationType.INFORMATION)
 
-            capture = AudioCapture(
-                onSilenceTimeout = {
+            if (settings.showRecordingOverlay) overlay.show()
+
+            val silenceTimeout: () -> Unit = if (settings.silenceDetectionEnabled) {
+                {
                     println("=== SpeakIDE: Silence timeout — auto-stopping ===")
                     stopRecording(activeProject, activeEditor)
-                },
+                }
+            } else {
+                {}   // silence detection disabled — never auto-stop
+            }
+
+            capture = AudioCapture(
+                silenceDurationMs = settings.silenceThresholdMs.toLong(),
+                onSilenceTimeout = silenceTimeout,
                 onData = { chunk -> pcmBuffer.add(chunk) },
                 onError = { ex ->
                     println("=== SpeakIDE: Audio error: ${ex.message} ===")
@@ -66,16 +76,15 @@ class ToggleRecordingAction : AnAction(), DumbAware {
         capture = null
         activeProject = null
         activeEditor = null
+        overlay.hide()
 
         val pcm = collectPcm()
-//        println("=== SpeakIDE: Recording stopped. ${pcm.size} bytes captured. ===")
 
         if (pcm.isEmpty()) {
             showNotification(project, "SpeakIDE", "Nothing recorded.", NotificationType.WARNING)
             return
         }
 
-//        showNotification(project, "SpeakIDE", "Recognizing...", NotificationType.INFORMATION)
         scope.launch { recognize(pcm, project, editor) }
     }
 
@@ -104,7 +113,6 @@ class ToggleRecordingAction : AnAction(), DumbAware {
             return
         }
         if (project != null && editor != null) {
-            // WriteCommandAction must run on the EDT
             ApplicationManager.getApplication().invokeLater {
                 CaretTextInsertion().insertTextAtCaret(project, editor, text)
             }

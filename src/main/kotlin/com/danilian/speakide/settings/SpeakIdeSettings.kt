@@ -30,7 +30,6 @@ class SpeakIdeSettings : PersistentStateComponent<SpeakIdeSettings.State> {
 
         var whisperModel: String = "whisper-large-v3",
         var showRecordingOverlay: Boolean = true,
-        var notifyOnAiCompletion: Boolean = true,
     )
 
     private var _state = State()

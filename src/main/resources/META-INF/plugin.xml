@@ -5,10 +5,25 @@
             url="https://github.com/Dragonav4">Dragonav
     </vendor>
     <description><![CDATA[
-        Universal voice input for IntelliJ IDEA.<br/>
-        Dictate into AI Chat, Junie, code editor, commit messages — any text field.<br/>
-        Supports OpenAI Whisper (cloud) and Vosk (offline).
+        <p><strong>SpeakIDE</strong> — Voice dictation straight into your IDE!</p>
+        <p>Press a shortcut, speak, and your words appear wherever your cursor is: the code editor, AI Chat, Junie, or a commit message.</p>
+        <ul>
+            <li><strong>Two STT backends:</strong> Choose between OpenAI Whisper (Cloud, requires API key) and Vosk (Offline, local processing).</li>
+            <li><strong>Universal input:</strong> Works in any text field within IntelliJ IDEA.</li>
+            <li><strong>Auto-stop on silence:</strong> Automatically stops recording after a configurable pause.</li>
+            <li><strong>Microphone button:</strong> Integrates directly into the AI Assistant chat toolbar.</li>
+        </ul>
+        <p>A must-have for developers looking to boost their productivity with voice commands.</p>
     ]]></description>
+
+    <change-notes><![CDATA[
+        <ul>
+            <li>Initial release of SpeakIDE!</li>
+            <li>Added OpenAI Whisper (Cloud) and Vosk (Offline) support.</li>
+            <li>Added auto-stop on silence detection.</li>
+            <li>Added AI Assistant integration toolbar icon.</li>
+        </ul>
+    ]]></change-notes>
 
     <depends>com.intellij.modules.platform</depends>
     <depends optional="true" config-file="speakide-ai-assistant.xml">com.intellij.ml.llm</depends>

@@ -25,8 +25,7 @@ dependencies {
     // JSON serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
-    // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
     // Vosk — offline speech recognition with a Java API
     // Models are downloaded on first use (~50 MB for the small English model)
@@ -37,6 +36,12 @@ dependencies {
 
     implementation("com.github.axet:TarsosDSP:2.4-1")
 
+    // ml-llm plugin classes — needed to compile against ChatSessionHostListener,
+    // ChatSession, ChatSessionState. compileOnly: provided at runtime by the plugin.
+    val mlLlmHome = "${System.getProperty("user.home")}/Library/Application Support/JetBrains/IntelliJIdea2026.1/plugins/ml-llm"
+    compileOnly(fileTree("$mlLlmHome/lib/modules") { include("*.jar") })
+    compileOnly(files("$mlLlmHome/lib/ml-llm.jar"))
+
     // Testing
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.13.13")
@@ -45,8 +50,6 @@ dependencies {
     intellijPlatform {
         local("/Applications/IntelliJ IDEA.app")
 
-        // Make ml-llm (AI Assistant) available in the sandbox so the optional
-        // dependency in speakide-ai-assistant.xml resolves and the mic button appears
         localPlugin(file("${System.getProperty("user.home")}/Library/Application Support/JetBrains/IntelliJIdea2026.1/plugins/ml-llm"))
 
         pluginVerifier()
