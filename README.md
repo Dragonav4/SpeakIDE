@@ -103,22 +103,32 @@ The microphone icon in the toolbar turns **red** while recording is active.
 ## Architecture
 
 ```
-ToggleRecordingAction
+ToggleRecordingAction  (~30 lines, delegates only)
         │
         ▼
-   AudioCapture  ──── SilenceTimeoutProcessor (TarsosDSP)
+RecordingService  (@Service APP — owns the state machine)
         │
-        ▼ raw PCM bytes
-   SttProviderFactory
+        ├── RecordingState (sealed class: Idle / Recording / Transcribing)
         │
-        ├── OpenAiWhisperProvider  ──── Ktor HTTP client ──── Whisper API
+        ├── AudioSource (interface)
+        │       └── AudioCapture (TarsosDSP)
+        │               ├── MicPermissionProbe
+        │               └── SilenceTimeoutProcessor
         │
-        └── VoskProvider  ──── Vosk JNI (native arm64/x86_64)
+        ├── PcmBuffer  (ConcurrentLinkedQueue — thread-safe PCM accumulator)
         │
-        ▼ transcribed text
-   CaretTextInsertion  (WriteCommandAction on EDT)
+        ├── SttProviderFactory
+        │       ├── OpenAiWhisperProvider  ── shared HttpClient (lazy) ── Whisper API
+        │       └── VoskProvider  ── Vosk JNI (native arm64 / x86_64)
         │
-        └── clipboard fallback if no editor focused
+        ├── TextDelivery (fun interface)
+        │       ├── CaretTextDelivery   (WriteCommandAction on EDT)
+        │       └── ClipboardTextDelivery  (fallback when no editor focused)
+        │
+        ├── RecordingIndicator (interface)
+        │       └── RecordingOverlay  (floating Swing window)
+        │
+        └── SpeakIdeNotifier  (wraps NotificationGroupManager)
 ```
 
 The AI Chat microphone button is a second registration of `ToggleRecordingAction` added to the AI Assistant toolbar — loaded only when the `com.intellij.ml.llm` plugin is present (optional dependency).
