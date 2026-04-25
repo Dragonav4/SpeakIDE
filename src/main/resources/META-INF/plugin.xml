@@ -31,14 +31,19 @@
     <extensions defaultExtensionNs="com.intellij">
         <!-- Settings page: Settings > Tools > SpeakIDE -->
         <applicationConfigurable
-            parentId="tools"
-            instance="com.danilian.speakide.settings.SpeakIdeConfigurable"
-            id="com.danilian.speakide.settings"
-            displayName="SpeakIDE"/>
+                parentId="tools"
+                instance="com.danilian.speakide.settings.SpeakIdeConfigurable"
+                id="com.danilian.speakide.settings"
+                displayName="SpeakIDE"/>
 
         <!-- Non-secret persistent settings (API key lives in PasswordSafe) -->
         <applicationService
-            serviceImplementation="com.danilian.speakide.settings.SpeakIdeSettings"/>
+                serviceImplementation="com.danilian.speakide.settings.SpeakIdeSettings"/>
+
+        <!-- Recording lifecycle: state machine, audio capture, STT dispatch, text delivery -->
+        <applicationService
+                serviceImplementation="com.danilian.speakide.recording.RecordingService"/>
+
         <notificationGroup id="SpeakIDE" displayType="BALLOON"/>
     </extensions>
 

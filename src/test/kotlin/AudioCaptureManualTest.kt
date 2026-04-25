@@ -1,4 +1,4 @@
-import com.danilian.speakide.AudioCapture
+import com.danilian.speakide.audio.AudioCapture
 
 
 fun main() {
