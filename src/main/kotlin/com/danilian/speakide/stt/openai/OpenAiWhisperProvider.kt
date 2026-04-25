@@ -1,6 +1,7 @@
 package com.danilian.speakide.stt.openai
 
 import com.danilian.speakide.settings.SecureStorage
+import com.danilian.speakide.settings.SpeakIdeConstants
 import com.danilian.speakide.settings.SpeakIdeSettings
 import com.danilian.speakide.stt.SttProvider
 import com.danilian.speakide.stt.SttResult
@@ -15,17 +16,11 @@ import io.ktor.client.statement.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import com.danilian.speakide.toWav
+import com.danilian.speakide.audio.toWav
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/**
- * STT provider backed by the OpenAI Whisper API (or any compatible endpoint).
- * Compatible providers:
- *   OpenAI — baseUrl = "https://api.openai.com/v1", model = "whisper-1"
- *   Groq — baseUrl = "https://api.groq.com/openai/v1", model = "whisper-large-v3"
- */
 class OpenAiWhisperProvider(
     private val httpClient: HttpClient,
     private val baseUrl: String,
@@ -51,7 +46,11 @@ class OpenAiWhisperProvider(
                 "API key is not set. Add it in Settings → Tools → SpeakIDE."
             )
 
-        val wavBytes = audioData.toWav(sampleRate = SAMPLE_RATE, channels = CHANNELS, bitsPerSample = BITS_PER_SAMPLE)
+        val wavBytes = audioData.toWav(
+            sampleRate = SpeakIdeConstants.SAMPLE_RATE,
+            channels = SpeakIdeConstants.CHANNELS,
+            bitsPerSample = SpeakIdeConstants.BITS_PER_SAMPLE
+        )
 
         val response = withContext(Dispatchers.IO) {
             httpClient.post("$baseUrl/audio/transcriptions") {
@@ -84,17 +83,17 @@ class OpenAiWhisperProvider(
     }
 
     companion object {
-        private const val SAMPLE_RATE = 44100
-        private const val CHANNELS = 1
-        private const val BITS_PER_SAMPLE = 16
+        private val sharedClient: HttpClient by lazy {
+            HttpClient(CIO) {
+                install(ContentNegotiation) {
+                    json(Json { ignoreUnknownKeys = true })
+                }
+            }
+        }
 
         fun create(settings: SpeakIdeSettings = SpeakIdeSettings.getInstance()): OpenAiWhisperProvider =
             OpenAiWhisperProvider(
-                httpClient = HttpClient(CIO) {
-                    install(ContentNegotiation) {
-                        json(Json { ignoreUnknownKeys = true })
-                    }
-                },
+                httpClient = sharedClient,
                 baseUrl = settings.state.whisperBaseUrl,
                 model = settings.state.whisperModel,
             )
@@ -103,4 +102,5 @@ class OpenAiWhisperProvider(
 
 @Serializable
 private data class WhisperResponse(
-    @SerialName("text") val text: String, )
+    @SerialName("text") val text: String,
+)

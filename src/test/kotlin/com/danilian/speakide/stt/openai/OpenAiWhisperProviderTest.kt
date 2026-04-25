@@ -1,6 +1,6 @@
 package com.danilian.speakide.stt.openai
 
-import com.danilian.speakide.toWav
+import com.danilian.speakide.audio.toWav
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -20,14 +20,14 @@ class OpenAiWhisperProviderTest {
     @Test
     fun `pcmToWav produces correct total size`() {
         val pcm = ByteArray(1000)
-        val wav = pcm.toWav( sampleRate = 44100, channels = 1, bitsPerSample = 16)
+        val wav = pcm.toWav(sampleRate = 44100, channels = 1, bitsPerSample = 16)
         assertEquals(1044, wav.size) // 44-byte header + 1000 data
     }
 
     @Test
     fun `pcmToWav starts with RIFF marker`() {
         val pcm = ByteArray(1000)
-        val wav = pcm.toWav( 44100, 1, 16)
+        val wav = pcm.toWav(44100, 1, 16)
         assertEquals("RIFF", String(wav.sliceArray(0..3)))
     }
 
@@ -41,7 +41,7 @@ class OpenAiWhisperProviderTest {
     @Test
     fun `pcmToWav contains data marker at offset 36`() {
         val pcm = ByteArray(1000)
-        val wav = pcm.toWav( 44100, 1, 16)
+        val wav = pcm.toWav(44100, 1, 16)
         assertEquals("data", String(wav.sliceArray(36..39)))
     }
 

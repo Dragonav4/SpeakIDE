@@ -14,25 +14,25 @@ repositories {
         defaultRepositories()
     }
 }
+val ktorVersion = "3.4.3"
 
 dependencies {
-    // Ktor client for OpenAI Whisper API - using 2.3.12 to avoid conflict with IntelliJ Platform
-    implementation("io.ktor:ktor-client-core:2.3.12") {
+    implementation("io.ktor:ktor-client-core:$ktorVersion") {
         exclude(group = "org.jetbrains.kotlinx")
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.slf4j")
     }
-    implementation("io.ktor:ktor-client-cio:2.3.12") {
+    implementation("io.ktor:ktor-client-cio:$ktorVersion") {
         exclude(group = "org.jetbrains.kotlinx")
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.slf4j")
     }
-    implementation("io.ktor:ktor-client-content-negotiation:2.3.12") {
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion") {
         exclude(group = "org.jetbrains.kotlinx")
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.slf4j")
     }
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.12") {
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion") {
         exclude(group = "org.jetbrains.kotlinx")
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.slf4j")
@@ -54,14 +54,15 @@ dependencies {
 
     // ml-llm plugin classes — needed to compile against ChatSessionHostListener,
     // ChatSession, ChatSessionState. compileOnly: provided at runtime by the plugin.
-    val mlLlmHome = "${System.getProperty("user.home")}/Library/Application Support/JetBrains/IntelliJIdea2026.1/plugins/ml-llm"
+    val mlLlmHome =
+        "${System.getProperty("user.home")}/Library/Application Support/JetBrains/IntelliJIdea2026.1/plugins/ml-llm"
     compileOnly(fileTree("$mlLlmHome/lib/modules") { include("*.jar") })
     compileOnly(files("$mlLlmHome/lib/ml-llm.jar"))
 
     // Testing
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.13.13")
-    testImplementation("io.ktor:ktor-client-mock:2.3.12")
+    testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
 
     intellijPlatform {
         local("/Applications/IntelliJ IDEA.app")

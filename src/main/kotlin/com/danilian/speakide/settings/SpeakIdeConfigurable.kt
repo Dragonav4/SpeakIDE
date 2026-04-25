@@ -18,7 +18,7 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
     private val settings = SpeakIdeSettings.getInstance().state
     private var loadedApiKey = ""
     private val apiKeyField = JPasswordField()
-    
+
     init {
         com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
             val key = SecureStorage.getOpenAiKey() ?: ""
@@ -28,6 +28,7 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
             }
         }
     }
+
     private lateinit var providerCombo: ComboBox<SttProviderOption>
 
     override fun createPanel(): DialogPanel = panel {
@@ -35,19 +36,22 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
             row("Provider:") {
                 providerCombo = comboBox(SttProviderOption.entries)
                     .bindItem(
-                        { SttProviderOption.entries.find { it.id == settings.sttProvider } ?: SttProviderOption.OPENAI_WHISPER },
+                        {
+                            SttProviderOption.entries.find { it.id == settings.sttProvider }
+                                ?: SttProviderOption.OPENAI_WHISPER
+                        },
                         { settings.sttProvider = it?.id ?: SttProviderOption.OPENAI_WHISPER.id }
                     ).component
             }
             row("Language:") {
-                comboBox(listOf("auto", "en", "ru", "de", "fr", "es", "zh", "ja"))
+                comboBox(SpeakIdeConstants.SUPPORTED_LANGUAGES)
                     .bindItem(
                         { settings.language },
                         { settings.language = it ?: "auto" }
                     )
                     .comment("Language hint for transcription. \"auto\" lets the provider detect it")
             }
-            
+
             val isWhisperPredicate = object : ComponentPredicate() {
                 override fun invoke() = providerCombo.selectedItem == SttProviderOption.OPENAI_WHISPER
                 override fun addListener(listener: (Boolean) -> Unit) {
@@ -59,7 +63,7 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
                 cell(apiKeyField)
                     .comment("Stored securely. Required for Whisper API")
             }.visibleIf(isWhisperPredicate)
-            
+
             row("Base URL:") {
                 textField()
                     .bindText(settings::whisperBaseUrl)
@@ -71,9 +75,10 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
                     .bindText(settings::whisperModel)
                     .comment("e.g. whisper-1 (OpenAI) or whisper-large-v3-turbo (Groq)")
             }.visibleIf(isWhisperPredicate)
-        row("Vosk model path:") {
+            row("Vosk model path:") {
                 textFieldWithBrowseButton(
-                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor().withTitle("Select Vosk Model Folder")
+                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()
+                        .withTitle("Select Vosk Model Folder")
                 ).bindText(settings::voskModelPath)
                     .comment("Download a model from <a href=\"https://alphacephei.com/vosk/models\">alphacephei.com/vosk/models</a> and point here")
             }.visibleIf(object : ComponentPredicate() {

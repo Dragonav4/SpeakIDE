@@ -1,4 +1,4 @@
-package com.danilian.speakide
+package com.danilian.speakide.audio
 
 import java.nio.ByteBuffer
 import java.nio.ByteOrder

@@ -1,20 +1,22 @@
-package com.danilian.speakide.textInsertion
+package com.danilian.speakide.delivery
 
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 
-class CaretTextInsertion {
 
-    fun insertTextAtCaret(project: Project, editor: Editor, textToInsert: String) {
+object CaretTextDelivery : TextDelivery {
+
+    override fun deliver(text: String, project: Project?, editor: Editor?) {
+        if (project == null || editor == null) return
         val document = editor.document
         val caretModel = editor.caretModel
         val offset = caretModel.offset
 
         WriteCommandAction.runWriteCommandAction(project) {
             if (document.isWritable) {
-                document.insertString(offset, textToInsert)
-                caretModel.moveToOffset(offset + textToInsert.length)
+                document.insertString(offset, text)
+                caretModel.moveToOffset(offset + text.length)
             }
         }
     }

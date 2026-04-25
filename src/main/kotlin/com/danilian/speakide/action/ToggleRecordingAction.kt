@@ -1,147 +1,30 @@
 package com.danilian.speakide.action
 
-import com.danilian.speakide.AudioCapture
-import com.danilian.speakide.settings.SpeakIdeSettings
-import com.danilian.speakide.stt.SttProviderFactory
-import com.danilian.speakide.textInsertion.CaretTextInsertion
-import com.danilian.speakide.ui.RecordingOverlay
-import com.intellij.notification.NotificationGroupManager
-import com.intellij.notification.NotificationType
+import com.danilian.speakide.recording.RecordingService
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAware
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.IconLoader
-import kotlinx.coroutines.*
-import java.awt.Toolkit
-import java.awt.datatransfer.StringSelection
-import java.util.concurrent.atomic.AtomicBoolean
+
 
 class ToggleRecordingAction : AnAction(), DumbAware {
 
-    private var capture: AudioCapture? = null
-    private val pcmBuffer = mutableListOf<ByteArray>()
-    private var isRecording = AtomicBoolean(false)
-    private val scope = CoroutineScope(Dispatchers.IO)
-    private val overlay = RecordingOverlay()
-
-    // Captured on the EDT at recording start; used by both manual stop and silence auto-stop
-    @Volatile private var activeProject: Project? = null
-    @Volatile private var activeEditor: Editor? = null
-
     override fun actionPerformed(e: AnActionEvent) {
-        val project = e.project
-
-        if (isRecording.compareAndSet(false, true)) {
-            activeProject = project
-            activeEditor = e.getData(CommonDataKeys.EDITOR)
-
-            val settings = SpeakIdeSettings.getInstance().state
-            pcmBuffer.clear()
-            println("=== SpeakIDE: Recording started ===")
-
-            if (settings.showRecordingOverlay) overlay.show()
-
-            val silenceTimeout: () -> Unit = if (settings.silenceDetectionEnabled) {
-                {
-                    println("=== SpeakIDE: Silence timeout — auto-stopping ===")
-                    stopRecording(activeProject, activeEditor)
-                }
-            } else {
-                {}   // silence detection disabled — never auto-stop
-            }
-
-            capture = AudioCapture(
-                silenceDurationMs = settings.silenceThresholdMs.toLong(),
-                onSilenceTimeout = silenceTimeout,
-                onData = { chunk -> pcmBuffer.add(chunk) },
-                onError = { ex ->
-                    println("=== SpeakIDE: Audio error: ${ex.message} ===")
-                    showNotification(project, "SpeakIDE", "Audio error: ${ex.message}", NotificationType.ERROR)
-                    stopRecording(project, editor = null)
-                }
-            ).also { it.start() }
-        } else {
-            stopRecording(project, e.getData(CommonDataKeys.EDITOR))
-        }
-    }
-
-    private fun stopRecording(project: Project?, editor: Editor?) {
-        if (!isRecording.compareAndSet(true, false)) return
-
-        capture?.stop()
-        capture = null
-        activeProject = null
-        activeEditor = null
-        overlay.hide()
-
-        val pcm = collectPcm()
-
-        if (pcm.isEmpty()) {
-            showNotification(project, "SpeakIDE", "Nothing recorded.", NotificationType.WARNING)
-            return
-        }
-
-        scope.launch { recognize(pcm, project, editor) }
-    }
-
-    private fun collectPcm(): ByteArray {
-        val pcm = pcmBuffer.fold(ByteArray(0)) { acc, chunk -> acc + chunk }
-        pcmBuffer.clear()
-        return pcm
-    }
-
-    private suspend fun recognize(pcm: ByteArray, project: Project?, editor: Editor?) {
-        try {
-            val settings = SpeakIdeSettings.getInstance()
-            val lang = settings.state.language.takeUnless { it == "auto" }
-            val text = SttProviderFactory.create(settings).transcribe(pcm, lang).text.trim()
-            println("=== SpeakIDE Recognized: $text ===")
-            deliverResult(text, project, editor)
-        } catch (ex: Throwable) {
-            println("=== SpeakIDE: Recognition error -> ${ex::class.simpleName}: ${ex.message} ===")
-            showNotification(project, "SpeakIDE: Error", "${ex::class.simpleName}: ${ex.message}", NotificationType.ERROR)
-        }
-    }
-
-    private fun deliverResult(text: String, project: Project?, editor: Editor?) {
-        if (text.isBlank()) {
-            showNotification(project, "SpeakIDE", "Nothing recognized.", NotificationType.WARNING)
-            return
-        }
-        if (project != null && editor != null) {
-            ApplicationManager.getApplication().invokeLater {
-                CaretTextInsertion().insertTextAtCaret(project, editor, text)
-            }
-        } else {
-            copyToClipboard(text)
-            showNotification(project, "SpeakIDE: Copied to clipboard", text, NotificationType.INFORMATION)
-        }
-    }
-
-    private fun copyToClipboard(text: String) {
-        Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null)
-    }
-
-    private fun showNotification(project: Project?, title: String, content: String, type: NotificationType) {
-        NotificationGroupManager.getInstance()
-            .getNotificationGroup("SpeakIDE")
-            .createNotification(title, content, type)
-            .notify(project)
+        service<RecordingService>().toggle(e.project, e.getData(CommonDataKeys.EDITOR))
     }
 
     override fun update(e: AnActionEvent) {
-        val recording = isRecording.get()
+        val recording = service<RecordingService>().isRecording()
         e.presentation.isEnabledAndVisible = true
         e.presentation.text = if (recording) "SpeakIDE: Stop Recording" else "SpeakIDE: Start Voice Recording"
         e.presentation.icon = if (recording) ICON_RECORDING else ICON_IDLE
     }
 
     companion object {
-        private val ICON_IDLE      = IconLoader.getIcon("/icons/microphone.svg",           ToggleRecordingAction::class.java)
-        private val ICON_RECORDING = IconLoader.getIcon("/icons/microphone_recording.svg", ToggleRecordingAction::class.java)
+        private val ICON_IDLE = IconLoader.getIcon("/icons/microphone.svg", ToggleRecordingAction::class.java)
+        private val ICON_RECORDING =
+            IconLoader.getIcon("/icons/microphone_recording.svg", ToggleRecordingAction::class.java)
     }
 }
