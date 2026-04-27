@@ -27,7 +27,13 @@
 
 ## Installation
 
-> *(Plugin not yet published to the Marketplace — build from source below)*
+### From JetBrains Marketplace (recommended)
+
+1. Open **Settings → Plugins → Marketplace**
+2. Search for **SpeakIDE**
+3. Click **Install** and restart the IDE
+
+Or install directly: [plugins.jetbrains.com/plugin/31433-speakide](https://plugins.jetbrains.com/plugin/31433-speakide)
 
 ### From source
 

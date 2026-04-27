@@ -17,6 +17,12 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <h3>0.1.1</h3>
+        <ul>
+            <li>Internal refactoring: cleaner architecture, better stability.</li>
+            <li>Fixed Ktor classloader conflict with IntelliJ Platform.</li>
+        </ul>
+        <h3>0.1.0</h3>
         <ul>
             <li>Initial release of SpeakIDE!</li>
             <li>Added OpenAI Whisper (Cloud) and Vosk (Offline) support.</li>
