@@ -43,6 +43,10 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
                         { settings.sttProvider = it?.id ?: SttProviderOption.OPENAI_WHISPER.id }
                     ).component
             }
+            val isWhisperCloudPredicate = providerPredicate(SttProviderOption.OPENAI_WHISPER)
+            val supportsLanguagePredicate =
+                providerPredicate(SttProviderOption.OPENAI_WHISPER, SttProviderOption.WHISPER_LOCAL)
+
             row("Language:") {
                 comboBox(SpeakIdeConstants.SUPPORTED_LANGUAGES)
                     .bindItem(
@@ -50,43 +54,40 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
                         { settings.language = it ?: "auto" }
                     )
                     .comment("Language hint for transcription. \"auto\" lets the provider detect it")
-            }
-
-            val isWhisperPredicate = object : ComponentPredicate() {
-                override fun invoke() = providerCombo.selectedItem == SttProviderOption.OPENAI_WHISPER
-                override fun addListener(listener: (Boolean) -> Unit) {
-                    providerCombo.addActionListener { listener(invoke()) }
-                }
-            }
+            }.visibleIf(supportsLanguagePredicate)
 
             row("API Key:") {
                 cell(apiKeyField)
                     .comment("Stored securely. Required for Whisper API")
-            }.visibleIf(isWhisperPredicate)
+            }.visibleIf(isWhisperCloudPredicate)
 
             row("Base URL:") {
                 textField()
                     .bindText(settings::whisperBaseUrl)
                     .comment("e.g. https://api.openai.com/v1 or https://api.groq.com/openai/v1")
-            }.visibleIf(isWhisperPredicate)
+            }.visibleIf(isWhisperCloudPredicate)
 
             row("Model Name:") {
                 textField()
                     .bindText(settings::whisperModel)
                     .comment("e.g. whisper-1 (OpenAI) or whisper-large-v3-turbo (Groq)")
-            }.visibleIf(isWhisperPredicate)
+            }.visibleIf(isWhisperCloudPredicate)
             row("Vosk model path:") {
                 textFieldWithBrowseButton(
                     fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()
                         .withTitle("Select Vosk Model Folder")
                 ).bindText(settings::voskModelPath)
                     .comment("Download a model from <a href=\"https://alphacephei.com/vosk/models\">alphacephei.com/vosk/models</a> and point here")
-            }.visibleIf(object : ComponentPredicate() {
-                override fun invoke() = providerCombo.selectedItem == SttProviderOption.VOSK
-                override fun addListener(listener: (Boolean) -> Unit) {
-                    providerCombo.addActionListener { listener(invoke()) }
-                }
-            })
+            }.visibleIf(providerPredicate(SttProviderOption.VOSK))
+
+            row("Whisper local model (.bin):") {
+                textFieldWithBrowseButton(
+                    fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor()
+                        .withTitle("Select Whisper ggml .bin Model")
+                        .withExtensionFilter("bin", "bin")
+                ).bindText(settings::whisperLocalModelPath)
+                    .comment("Download a ggml model (e.g. ggml-base.en.bin) from huggingface and point here")
+            }.visibleIf(providerPredicate(SttProviderOption.WHISPER_LOCAL))
         }
 
         group("Detection and UI") {
@@ -114,6 +115,13 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
                 SecureStorage.setOpenAiKey(currentText)
             }
             loadedApiKey = currentText
+        }
+    }
+
+    private fun providerPredicate(vararg options: SttProviderOption) = object : ComponentPredicate() {
+        override fun invoke() = providerCombo.selectedItem in options
+        override fun addListener(listener: (Boolean) -> Unit) {
+            providerCombo.addActionListener { listener(invoke()) }
         }
     }
 

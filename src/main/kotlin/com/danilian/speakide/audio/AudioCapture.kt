@@ -36,12 +36,12 @@ class AudioCapture(
                 d.addAudioProcessor(silenceDetector)
                 d.addAudioProcessor(
                     MicPermissionProbe(
-                    silenceDetector = silenceDetector,
-                    onMicDenied = {
-                        onMicDenied()
-                        onError(SecurityException("Microphone access denied by macOS"))
-                    }
-                ))
+                        silenceDetector = silenceDetector,
+                        onMicDenied = {
+                            onMicDenied()
+                            onError(SecurityException("Microphone access denied by macOS"))
+                        }
+                    ))
                 d.addAudioProcessor(
                     SilenceTimeoutProcessor(
                         silenceDetector = silenceDetector,
@@ -55,9 +55,7 @@ class AudioCapture(
                         val floats = event.floatBuffer
                         val pcm = ByteArray(floats.size * 2)
                         for (i in floats.indices) {
-                            // coerceIn clamps to 16-bit range, preventing wrap-around clipping
                             val sample = (floats[i] * 32767.0f).toInt().coerceIn(-32768, 32767)
-                            // 16-bit Little Endian, as WAV expects
                             pcm[i * 2] = (sample and 0xFF).toByte()
                             pcm[i * 2 + 1] = ((sample shr 8) and 0xFF).toByte()
                         }

@@ -18,17 +18,12 @@ class SpeakIdeSettings : PersistentStateComponent<SpeakIdeSettings.State> {
         var language: String = "auto",
         var silenceDetectionEnabled: Boolean = true,
         var silenceThresholdMs: Int = 2000,
-
-        /**
-         * RMS amplitude below which a PCM buffer is considered silent.
-         * 0 = absolute silence, 32767 = max PCM-16 amplitude.
-         */
-        var silenceRmsThreshold: Float = 500f,
         var voskModelPath: String = "",
 
         var whisperBaseUrl: String = "https://api.groq.com/openai/v1",
 
         var whisperModel: String = "whisper-large-v3",
+        var whisperLocalModelPath: String = "",
         var showRecordingOverlay: Boolean = true,
     )
 
@@ -49,4 +44,5 @@ class SpeakIdeSettings : PersistentStateComponent<SpeakIdeSettings.State> {
 enum class SttProviderOption(val id: String, val displayName: String) {
     OPENAI_WHISPER("openai-whisper", "OpenAI Whisper (Cloud native)"),
     VOSK("vosk", "Vosk (Offline)"),
+    WHISPER_LOCAL("whisper-local", "Whisper (Local)"),
 }
