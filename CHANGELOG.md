@@ -1,6 +1,6 @@
 # SpeakIDE Changelog
 
-## [0.1.1]
+## [0.1.2]
 - Added **Whisper Local** backend — runs a ggml Whisper model on-device via whisper.cpp JNI, no internet required.
 - Improved audio resampling quality: switched from linear interpolation to a sinc-based algorithm (TarsosDSP) for better transcription accuracy with Whisper Local.
 - Fixed hallucination filter for Whisper Local — added missing Russian subtitle phrases (`субтитры создавал`, `продолжение следует`, `dimatorzok`).
