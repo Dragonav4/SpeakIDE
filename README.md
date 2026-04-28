@@ -14,9 +14,10 @@
 ## Features
 
 - **Universal input** — works in any text field: code editor, AI Chat / Junie, commit message, search boxes
-- **Two STT backends** — switch between cloud and offline in settings:
+- **Three STT backends** — switch between cloud and offline in settings:
   - **OpenAI Whisper** (cloud) — high accuracy, supports any OpenAI-compatible endpoint (OpenAI, Groq, etc.)
-  - **Vosk** (offline) — fully local, no internet required, no data leaves your machine
+  - **Whisper Local** (offline) — runs a ggml Whisper model on-device via whisper.cpp JNI, no internet required
+  - **Vosk** (offline) — fully local, lightweight, no internet required, no data leaves your machine
 - **Auto-stop on silence** — recording ends automatically after a configurable pause; no need to press the shortcut again
 - **Clipboard fallback** — if no editor is focused when recording stops, the transcribed text is copied to clipboard
 - **Microphone button in AI Chat toolbar** — one-click dictation directly from the AI Assistant / Junie input bar
@@ -73,6 +74,16 @@ Install the `.zip` via **Settings → Plugins → ⚙ → Install Plugin from Di
 4. Select **Provider → Vosk (Offline)**
 5. Set **Vosk model path** to the extracted folder
 
+### Whisper Local (offline)
+
+1. Download a ggml model from [Hugging Face](https://huggingface.co/ggerganov/whisper.cpp)  
+   Recommended: `ggml-base.en.bin` (~150 MB) or `ggml-small.bin` for multilingual
+2. Open **Settings → Tools → SpeakIDE**
+3. Select **Provider → Whisper (Local)**
+4. Set **Whisper local model (.bin)** to the downloaded `.bin` file
+
+> **Note for macOS Apple Silicon users:** the bundled native library supports both arm64 and x86_64 — no extra steps needed.
+
 ---
 
 ## Usage
@@ -94,12 +105,13 @@ The microphone icon in the toolbar turns **red** while recording is active.
 
 | Setting | Description |
 |---------|-------------|
-| Provider | `OpenAI Whisper (Cloud)` or `Vosk (Offline)` |
-| Language | Language hint (`auto`, `en`, `ru`, `de`, …) |
-| API Key | Whisper API key — stored in PasswordSafe |
+| Provider | `OpenAI Whisper (Cloud)`, `Vosk (Offline)`, or `Whisper (Local)` |
+| Language | Language hint (`auto`, `en`, `ru`, `de`, …) — Vosk ignores this |
+| API Key | Whisper cloud API key — stored in PasswordSafe |
 | Base URL | Whisper-compatible endpoint URL |
-| Model Name | Model identifier for the API |
+| Model Name | Model identifier for the cloud API |
 | Vosk model path | Path to the extracted Vosk model folder |
+| Whisper local model (.bin) | Path to a ggml `.bin` model file |
 | Enable silence detection | Auto-stop recording after a pause |
 | Silence threshold (ms) | How long the pause must be before stopping (default 2000 ms) |
 | Show recording overlay | Visual indicator while recording |
@@ -125,6 +137,8 @@ RecordingService  (@Service APP — owns the state machine)
         │
         ├── SttProviderFactory
         │       ├── OpenAiWhisperProvider  ── shared HttpClient (lazy) ── Whisper API
+        │       ├── WhisperLocalProvider   ── whisper.cpp JNI ── ggml model (offline)
+        │       │       └── AudioResampler  (44 100 Hz → 16 kHz, TarsosDSP sinc)
         │       └── VoskProvider  ── Vosk JNI (native arm64 / x86_64)
         │
         ├── TextDelivery (fun interface)
