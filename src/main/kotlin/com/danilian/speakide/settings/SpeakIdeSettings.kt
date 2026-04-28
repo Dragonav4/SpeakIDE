@@ -18,12 +18,6 @@ class SpeakIdeSettings : PersistentStateComponent<SpeakIdeSettings.State> {
         var language: String = "auto",
         var silenceDetectionEnabled: Boolean = true,
         var silenceThresholdMs: Int = 2000,
-
-        /**
-         * RMS amplitude below which a PCM buffer is considered silent.
-         * 0 = absolute silence, 32767 = max PCM-16 amplitude.
-         */
-        var silenceRmsThreshold: Float = 500f,
         var voskModelPath: String = "",
 
         var whisperBaseUrl: String = "https://api.groq.com/openai/v1",
