@@ -49,6 +49,7 @@ dependencies {
     implementation("com.alphacephei:vosk:0.3.32") {
         exclude(group = "net.java.dev.jna", module = "jna")
     }
+    implementation("io.github.givimad:whisper-jni:1.7.1")
 
     implementation("com.github.axet:TarsosDSP:2.4-1")
 
@@ -92,3 +93,16 @@ tasks.named<JavaExec>("runIde") {
 intellijPlatform {
     instrumentCode = false
 }
+
+tasks.processResources {
+    from(voskNativeDir) {
+        include("libvosk.dylib")
+        into("darwin-aarch64")
+    }
+    from(voskNativeDir) {
+        include("libvosk.dylib")
+        into("darwin-x86-64")
+    }
+}
+
+

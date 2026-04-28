@@ -29,6 +29,7 @@ class SpeakIdeSettings : PersistentStateComponent<SpeakIdeSettings.State> {
         var whisperBaseUrl: String = "https://api.groq.com/openai/v1",
 
         var whisperModel: String = "whisper-large-v3",
+        var whisperLocalModelPath: String = "",
         var showRecordingOverlay: Boolean = true,
     )
 
@@ -49,4 +50,5 @@ class SpeakIdeSettings : PersistentStateComponent<SpeakIdeSettings.State> {
 enum class SttProviderOption(val id: String, val displayName: String) {
     OPENAI_WHISPER("openai-whisper", "OpenAI Whisper (Cloud native)"),
     VOSK("vosk", "Vosk (Offline)"),
+    WHISPER_LOCAL("whisper-local", "Whisper (Local)"),
 }
