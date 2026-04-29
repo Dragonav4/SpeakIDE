@@ -1,5 +1,9 @@
 # SpeakIDE Changelog
 
+## [Unreleased]
+- Fixed STT provider cache not invalidating when Base URL or model name changes in settings.
+- Fixed redundant settings object being passed to `SttProviderFactory` (settings are a singleton).
+
 ## [0.1.2]
 - Added **Whisper Local** backend — runs a ggml Whisper model on-device via whisper.cpp JNI, no internet required.
 - Improved audio resampling quality: switched from linear interpolation to a sinc-based algorithm (TarsosDSP) for better transcription accuracy with Whisper Local.

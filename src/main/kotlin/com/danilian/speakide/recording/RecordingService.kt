@@ -6,6 +6,7 @@ import com.danilian.speakide.delivery.CaretTextDelivery
 import com.danilian.speakide.delivery.ClipboardTextDelivery
 import com.danilian.speakide.notification.SpeakIdeNotifier
 import com.danilian.speakide.settings.SpeakIdeSettings
+import com.danilian.speakide.stt.SttProvider
 import com.danilian.speakide.stt.SttProviderFactory
 import com.danilian.speakide.ui.RecordingIndicator
 import com.danilian.speakide.ui.RecordingOverlay
@@ -27,6 +28,8 @@ class RecordingService : Disposable {
     private val notifier = SpeakIdeNotifier()
     private val indicator: RecordingIndicator = RecordingOverlay()
 
+    private var cachedProvider: SttProvider? = null
+    private var cachedProviderKey: String? = null
     @Volatile
     private var state: RecordingState = RecordingState.Idle
 
@@ -38,6 +41,17 @@ class RecordingService : Disposable {
             is RecordingState.Recording -> stopRecording(current)
             is RecordingState.Transcribing -> Unit // ignore mid-transcription toggles
         }
+    }
+
+    private fun getProvider(): SttProvider {
+        val s = SpeakIdeSettings.getInstance().state
+        val key = "${s.sttProvider}|${s.whisperBaseUrl}|${s.whisperModel}|${s.voskModelPath}|${s.whisperLocalModelPath}"
+        if (cachedProviderKey != key) {
+            (cachedProvider as? Disposable)?.dispose()
+            cachedProvider = SttProviderFactory.create()
+            cachedProviderKey = key
+        }
+        return cachedProvider!!
     }
 
     private fun startRecording(project: Project?, editor: Editor?) {
@@ -85,9 +99,8 @@ class RecordingService : Disposable {
 
     private suspend fun transcribe(pcm: ByteArray, project: Project?, editor: Editor?) {
         try {
-            val settings = SpeakIdeSettings.getInstance()
-            val lang = settings.state.language.takeUnless { it == "auto" }
-            val text = SttProviderFactory.create(settings).transcribe(pcm, lang).text.trim()
+            val lang = SpeakIdeSettings.getInstance().state.language.takeUnless { it == "auto" }
+            val text = getProvider().transcribe(pcm, lang).text.trim()
             deliverResult(text, project, editor)
         } catch (ex: Throwable) {
             notifier.notifyRecognitionError(project, ex)
@@ -120,5 +133,7 @@ class RecordingService : Disposable {
         (state as? RecordingState.Recording)?.capture?.stop()
         indicator.hide()
         scope.cancel()
+        (cachedProvider as? Disposable)?.dispose()
+        cachedProvider = null
     }
 }

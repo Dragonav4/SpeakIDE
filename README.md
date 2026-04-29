@@ -84,6 +84,8 @@ Install the `.zip` via **Settings → Plugins → ⚙ → Install Plugin from Di
 
 > **Note for macOS Apple Silicon users:** the bundled native library supports both arm64 and x86_64 — no extra steps needed.
 
+> **Minimum audio length:** Whisper Local requires at least ~1 second of speech to produce a result. Very short recordings (under 1 s) will return empty output.
+
 ---
 
 ## Usage
