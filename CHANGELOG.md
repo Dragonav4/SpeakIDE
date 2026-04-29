@@ -1,6 +1,6 @@
 # SpeakIDE Changelog
 
-## [Unreleased]
+## [0.1.3]
 - Fixed STT provider cache not invalidating when Base URL or model name changes in settings.
 - Fixed redundant settings object being passed to `SttProviderFactory` (settings are a singleton).
 
