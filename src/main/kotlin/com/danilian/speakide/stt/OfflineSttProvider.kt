@@ -3,12 +3,12 @@ package com.danilian.speakide.stt
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.logger
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 private val LOG = logger<OfflineSttProvider<*>>()
+
 
 abstract class OfflineSttProvider<R : Any>(
     protected val modelPath: String
@@ -18,7 +18,7 @@ abstract class OfflineSttProvider<R : Any>(
     private var resource: R? = null
 
     @Volatile
-    private var disposed = false
+    protected var disposed = false
 
     protected suspend fun getOrLoad(): R {
         resource?.let { return it }
@@ -45,25 +45,13 @@ abstract class OfflineSttProvider<R : Any>(
             loaded
         }
     }
+    protected fun getLoadedResource(): R? = resource
+
+    protected fun clearResource() {
+        resource = null
+    }
 
     protected abstract fun validatePath(path: String)
 
     protected abstract suspend fun loadResource(path: String): R
-
-    protected abstract fun releaseResource(resource: R)
-
-    override fun dispose() {
-        disposed = true
-        val toRelease = runBlocking {
-            mutex.withLock {
-                val r = resource
-                resource = null
-                r
-            }
-        }
-        toRelease?.let {
-            runCatching { releaseResource(it) }
-                .onFailure { ex -> LOG.warn("$displayName: error during dispose", ex) }
-        }
-    }
 }
