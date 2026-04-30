@@ -1,5 +1,7 @@
 package com.danilian.speakide.stt.openai
 
+import com.danilian.speakide.audio.AudioData
+import com.danilian.speakide.audio.AudioFormat
 import com.danilian.speakide.audio.toWav
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
@@ -13,35 +15,34 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
+private val TEST_FORMAT = AudioFormat(sampleRate = 44100, channels = 1, bitsPerSample = 16)
+private fun audioData(size: Int) = AudioData(ByteArray(size), TEST_FORMAT)
+
 class OpenAiWhisperProviderTest {
 
-    //pcmToWav
+    // pcmToWav
 
     @Test
     fun `pcmToWav produces correct total size`() {
-        val pcm = ByteArray(1000)
-        val wav = pcm.toWav(sampleRate = 44100, channels = 1, bitsPerSample = 16)
+        val wav = ByteArray(1000).toWav(sampleRate = 44100, channels = 1, bitsPerSample = 16)
         assertEquals(1044, wav.size) // 44-byte header + 1000 data
     }
 
     @Test
     fun `pcmToWav starts with RIFF marker`() {
-        val pcm = ByteArray(1000)
-        val wav = pcm.toWav(44100, 1, 16)
+        val wav = ByteArray(1000).toWav(44100, 1, 16)
         assertEquals("RIFF", String(wav.sliceArray(0..3)))
     }
 
     @Test
     fun `pcmToWav contains WAVE marker at offset 8`() {
-        val pcm = ByteArray(1000)
-        val wav = pcm.toWav(44100, 1, 16)
+        val wav = ByteArray(1000).toWav(44100, 1, 16)
         assertEquals("WAVE", String(wav.sliceArray(8..11)))
     }
 
     @Test
     fun `pcmToWav contains data marker at offset 36`() {
-        val pcm = ByteArray(1000)
-        val wav = pcm.toWav(44100, 1, 16)
+        val wav = ByteArray(1000).toWav(44100, 1, 16)
         assertEquals("data", String(wav.sliceArray(36..39)))
     }
 
@@ -50,7 +51,7 @@ class OpenAiWhisperProviderTest {
     @Test
     fun `transcribe returns empty result for empty audio`() = runBlocking {
         val provider = buildProvider()
-        val result = provider.transcribe(ByteArray(0), null)
+        val result = provider.transcribe(audioData(0), null)
         assertEquals("", result.text)
     }
 
@@ -58,7 +59,7 @@ class OpenAiWhisperProviderTest {
     fun `transcribe throws when API key is missing`() {
         val provider = buildProvider(apiKey = null)
         assertThrows<IllegalStateException> {
-            runBlocking { provider.transcribe(ByteArray(100), null) }
+            runBlocking { provider.transcribe(audioData(100), null) }
         }
     }
 
@@ -67,14 +68,14 @@ class OpenAiWhisperProviderTest {
     @Test
     fun `transcribe returns text from API response`() = runBlocking {
         val provider = buildProvider(responseBody = """{"text": "hello world"}""")
-        val result = provider.transcribe(ByteArray(100), null)
+        val result = provider.transcribe(audioData(100), null)
         assertEquals("hello world", result.text)
     }
 
     @Test
     fun `transcribe trims whitespace from response`() = runBlocking {
         val provider = buildProvider(responseBody = """{"text": "  hello  "}""")
-        val result = provider.transcribe(ByteArray(100), null)
+        val result = provider.transcribe(audioData(100), null)
         assertEquals("hello", result.text)
     }
 
@@ -85,7 +86,7 @@ class OpenAiWhisperProviderTest {
             apiKey = "sk-test-123",
             onRequest = { request -> capturedAuth = request.headers[HttpHeaders.Authorization] },
         )
-        provider.transcribe(ByteArray(100), null)
+        provider.transcribe(audioData(100), null)
         assertEquals("Bearer sk-test-123", capturedAuth)
     }
 
@@ -97,7 +98,7 @@ class OpenAiWhisperProviderTest {
                 capturedBody = request.body.toByteArray().decodeToString()
             },
         )
-        provider.transcribe(ByteArray(100), language = "fr")
+        provider.transcribe(audioData(100), language = "fr")
         assert(capturedBody.contains("fr")) { "Expected 'fr' in multipart body" }
     }
 
@@ -109,11 +110,11 @@ class OpenAiWhisperProviderTest {
                 capturedBody = request.body.toByteArray().decodeToString()
             },
         )
-        provider.transcribe(ByteArray(100), language = "auto")
+        provider.transcribe(audioData(100), language = "auto")
         assert(!capturedBody.contains("language")) { "Expected no language field for 'auto'" }
     }
 
-    //helpers
+    // helpers
 
     private fun buildProvider(
         responseBody: String = """{"text": ""}""",

@@ -1,25 +1,29 @@
 package com.danilian.speakide.stt.openai
 
+import com.danilian.speakide.audio.AudioData
+import com.danilian.speakide.audio.toWav
 import com.danilian.speakide.settings.SecureStorage
-import com.danilian.speakide.settings.SpeakIdeConstants
 import com.danilian.speakide.settings.SpeakIdeSettings
 import com.danilian.speakide.stt.SttProvider
 import com.danilian.speakide.stt.SttResult
+import com.danilian.speakide.stt.WhisperHallucinations
+import com.intellij.openapi.diagnostic.logger
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
-import io.ktor.http.*
 import io.ktor.client.statement.*
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import com.danilian.speakide.audio.toWav
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+
+private val LOG = logger<OpenAiWhisperProvider>()
 
 class OpenAiWhisperProvider(
     private val httpClient: HttpClient,
@@ -30,26 +34,18 @@ class OpenAiWhisperProvider(
 
     override val displayName = "OpenAI Whisper (Cloud)"
     override val requiresNetwork = true
-
-    /**
-     * Transcribes raw PCM audio via the Whisper API.
-     *
-     * Pipeline:
-     *   ByteArray (raw PCM) → WAV (44-byte RIFF header prepended)
-     *   → multipart/form-data POST → JSON response → SttResult
-     */
-    override suspend fun transcribe(audioData: ByteArray, language: String?): SttResult {
-        if (audioData.isEmpty()) return SttResult(text = "")
+    override suspend fun transcribe(audio: AudioData, language: String?): SttResult {
+        if (audio.pcm.isEmpty()) return SttResult(text = "")
 
         val apiKey = apiKeyProvider()
             ?: throw IllegalStateException(
                 "API key is not set. Add it in Settings → Tools → SpeakIDE."
             )
 
-        val wavBytes = audioData.toWav(
-            sampleRate = SpeakIdeConstants.SAMPLE_RATE,
-            channels = SpeakIdeConstants.CHANNELS,
-            bitsPerSample = SpeakIdeConstants.BITS_PER_SAMPLE
+        val wavBytes = audio.pcm.toWav(
+            sampleRate = audio.format.sampleRate,
+            channels = audio.format.channels,
+            bitsPerSample = audio.format.bitsPerSample,
         )
 
         val response = withContext(Dispatchers.IO) {
@@ -79,7 +75,16 @@ class OpenAiWhisperProvider(
         }
 
         val parsedResponse: WhisperResponse = response.body()
+        LOG.debug("OpenAiWhisperProvider: result = ${parsedResponse.text}")
         return SttResult(text = parsedResponse.text.trim())
+    }
+
+    override fun postProcess(result: SttResult): SttResult {
+        if (WhisperHallucinations.isHallucination(result.text)) {
+            LOG.info("OpenAiWhisperProvider: filtered out hallucination: ${result.text}")
+            return result.copy(text = "")
+        }
+        return result
     }
 
     companion object {

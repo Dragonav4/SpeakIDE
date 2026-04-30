@@ -1,13 +1,13 @@
 package com.danilian.speakide.recording
 
 import com.danilian.speakide.audio.AudioCapture
+import com.danilian.speakide.audio.AudioData
 import com.danilian.speakide.audio.PcmBuffer
-import com.danilian.speakide.delivery.CaretTextDelivery
-import com.danilian.speakide.delivery.ClipboardTextDelivery
+import com.danilian.speakide.delivery.ResultDelivery
 import com.danilian.speakide.notification.SpeakIdeNotifier
+import com.danilian.speakide.settings.SpeakIdeConstants
 import com.danilian.speakide.settings.SpeakIdeSettings
-import com.danilian.speakide.stt.SttProvider
-import com.danilian.speakide.stt.SttProviderFactory
+import com.danilian.speakide.stt.TranscriptionService
 import com.danilian.speakide.ui.RecordingIndicator
 import com.danilian.speakide.ui.RecordingOverlay
 import com.intellij.openapi.Disposable
@@ -27,9 +27,8 @@ class RecordingService : Disposable {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val notifier = SpeakIdeNotifier()
     private val indicator: RecordingIndicator = RecordingOverlay()
+    private val delivery = ResultDelivery(notifier)
 
-    private var cachedProvider: SttProvider? = null
-    private var cachedProviderKey: String? = null
     @Volatile
     private var state: RecordingState = RecordingState.Idle
 
@@ -41,17 +40,6 @@ class RecordingService : Disposable {
             is RecordingState.Recording -> stopRecording(current)
             is RecordingState.Transcribing -> Unit // ignore mid-transcription toggles
         }
-    }
-
-    private fun getProvider(): SttProvider {
-        val s = SpeakIdeSettings.getInstance().state
-        val key = "${s.sttProvider}|${s.whisperBaseUrl}|${s.whisperModel}|${s.voskModelPath}|${s.whisperLocalModelPath}"
-        if (cachedProviderKey != key) {
-            (cachedProvider as? Disposable)?.dispose()
-            cachedProvider = SttProviderFactory.create()
-            cachedProviderKey = key
-        }
-        return cachedProvider!!
     }
 
     private fun startRecording(project: Project?, editor: Editor?) {
@@ -77,7 +65,6 @@ class RecordingService : Disposable {
         )
 
         state = RecordingState.Recording(project, editor, capture, buffer)
-
         if (settings.showRecordingOverlay) indicator.show()
         capture.start()
     }
@@ -94,33 +81,21 @@ class RecordingService : Disposable {
             return
         }
 
-        scope.launch { transcribe(pcm, current.project, current.editor) }
+        val audio = AudioData(pcm, SpeakIdeConstants.CAPTURE_FORMAT)
+        scope.launch { transcribe(audio, current.project, current.editor) }
     }
 
-    private suspend fun transcribe(pcm: ByteArray, project: Project?, editor: Editor?) {
+    private suspend fun transcribe(audio: AudioData, project: Project?, editor: Editor?) {
         try {
             val lang = SpeakIdeSettings.getInstance().state.language.takeUnless { it == "auto" }
-            val text = getProvider().transcribe(pcm, lang).text.trim()
-            deliverResult(text, project, editor)
+            val transcriptionService = ApplicationManager.getApplication()
+                .getService(TranscriptionService::class.java)
+            val text = transcriptionService.transcribe(audio, lang).text.trim()
+            delivery.deliver(text, project, editor)
         } catch (ex: Throwable) {
             notifier.notifyRecognitionError(project, ex)
         } finally {
             state = RecordingState.Idle
-        }
-    }
-
-    private fun deliverResult(text: String, project: Project?, editor: Editor?) {
-        if (text.isBlank()) {
-            notifier.notifyNothingRecognized(project)
-            return
-        }
-        if (project != null && editor != null) {
-            ApplicationManager.getApplication().invokeLater {
-                CaretTextDelivery.deliver(text, project, editor)
-            }
-        } else {
-            ClipboardTextDelivery.deliver(text, project, editor)
-            notifier.notifyClipboard(project, text)
         }
     }
 
@@ -133,7 +108,5 @@ class RecordingService : Disposable {
         (state as? RecordingState.Recording)?.capture?.stop()
         indicator.hide()
         scope.cancel()
-        (cachedProvider as? Disposable)?.dispose()
-        cachedProvider = null
     }
 }
