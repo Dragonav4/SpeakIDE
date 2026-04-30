@@ -6,7 +6,6 @@ object AudioResampler {
 
     private const val TARGET_RATE = 16_000
     private const val SOURCE_RATE = 44_100
-    private val FACTOR = TARGET_RATE.toDouble() / SOURCE_RATE
 
     fun resampleTo16kFloat(pcmBytes: ByteArray, sourceRate: Int = SOURCE_RATE): FloatArray {
         if (pcmBytes.isEmpty()) return FloatArray(0)

@@ -1,5 +1,7 @@
 package com.danilian.speakide.settings
 
+import com.danilian.speakide.audio.AudioFormat
+
 
 object SpeakIdeConstants {
     const val NOTIFICATION_GROUP_ID = "SpeakIDE"
@@ -13,6 +15,8 @@ object SpeakIdeConstants {
     const val CHANNELS = 1
 
     const val BITS_PER_SAMPLE = 16
+
+    val CAPTURE_FORMAT = AudioFormat(SAMPLE_RATE, CHANNELS, BITS_PER_SAMPLE)
 
     val SUPPORTED_LANGUAGES = listOf("auto", "en", "ru", "de", "fr", "es", "zh", "ja")
 }

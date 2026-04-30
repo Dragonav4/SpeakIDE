@@ -44,5 +44,10 @@ class SpeakIdeSettings : PersistentStateComponent<SpeakIdeSettings.State> {
 enum class SttProviderOption(val id: String, val displayName: String) {
     OPENAI_WHISPER("openai-whisper", "OpenAI Whisper (Cloud native)"),
     VOSK("vosk", "Vosk (Offline)"),
-    WHISPER_LOCAL("whisper-local", "Whisper (Local)"),
+    WHISPER_LOCAL("whisper-local", "Whisper (Local)");
+
+    companion object {
+        fun fromId(id: String): SttProviderOption =
+            entries.find { it.id == id } ?: OPENAI_WHISPER
+    }
 }

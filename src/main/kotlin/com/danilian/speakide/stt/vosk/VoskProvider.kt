@@ -1,5 +1,6 @@
 package com.danilian.speakide.stt.vosk
 
+import com.danilian.speakide.audio.AudioData
 import com.danilian.speakide.stt.OfflineSttProvider
 import com.danilian.speakide.stt.SttResult
 import com.intellij.openapi.diagnostic.logger
@@ -17,7 +18,6 @@ private val LOG = logger<VoskProvider>()
 class VoskProvider(modelPath: String) : OfflineSttProvider<Model>(modelPath) {
 
     companion object {
-        private const val SAMPLE_RATE = 44100f
         private val voskJson = Json { ignoreUnknownKeys = true }
 
         fun parseVoskResult(json: String): SttResult {
@@ -40,27 +40,24 @@ class VoskProvider(modelPath: String) : OfflineSttProvider<Model>(modelPath) {
 
     override suspend fun loadResource(path: String): Model = Model(path)
 
-    override suspend fun transcribe(audioData: ByteArray, language: String?): SttResult {
-        if (audioData.isEmpty()) return SttResult(text = "")
+    override fun releaseResource(resource: Model) = resource.close()
+
+    override suspend fun transcribe(audio: AudioData, language: String?): SttResult {
+        if (audio.pcm.isEmpty()) return SttResult(text = "")
 
         val model = getOrLoad()
+        val sampleRate = audio.format.sampleRate.toFloat()
 
-        LOG.debug("VoskProvider: transcribing ${audioData.size} bytes")
+        LOG.debug("VoskProvider: transcribing ${audio.pcm.size} bytes @ ${audio.format.sampleRate} Hz")
         val resultJson = withContext(Dispatchers.IO) {
-            Recognizer(model, SAMPLE_RATE).use { recognizer ->
-                recognizer.acceptWaveForm(audioData, audioData.size)
+            Recognizer(model, sampleRate).use { recognizer ->
+                recognizer.acceptWaveForm(audio.pcm, audio.pcm.size)
                 recognizer.finalResult
             }
         }
         LOG.debug("VoskProvider: raw result = $resultJson")
 
         return parseVoskResult(resultJson)
-    }
-
-    override fun dispose() {
-        disposed = true
-        getLoadedResource()?.close()
-        clearResource()
     }
 }
 

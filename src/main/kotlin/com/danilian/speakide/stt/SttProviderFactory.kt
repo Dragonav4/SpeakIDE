@@ -8,11 +8,10 @@ import com.danilian.speakide.stt.whisperlocal.WhisperLocalProvider
 
 
 class SttProviderFactory(private val settings: SpeakIdeSettings = SpeakIdeSettings.getInstance()) {
-    fun create(): SttProvider = when (settings.state.sttProvider) {
-        SttProviderOption.OPENAI_WHISPER.id -> OpenAiWhisperProvider.create(settings)
-        SttProviderOption.VOSK.id -> VoskProvider(settings.state.voskModelPath)
-        SttProviderOption.WHISPER_LOCAL.id -> WhisperLocalProvider(settings.state.whisperLocalModelPath)
-        else -> OpenAiWhisperProvider.create(settings)
+    fun create(): SttProvider = when (SttProviderOption.fromId(settings.state.sttProvider)) {
+        SttProviderOption.OPENAI_WHISPER -> OpenAiWhisperProvider.create(settings)
+        SttProviderOption.VOSK -> VoskProvider(settings.state.voskModelPath)
+        SttProviderOption.WHISPER_LOCAL -> WhisperLocalProvider(settings.state.whisperLocalModelPath)
     }
 
     companion object {
