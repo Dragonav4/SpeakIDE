@@ -1,5 +1,7 @@
 package com.danilian.speakide.stt.vosk
 
+import com.danilian.speakide.audio.AudioData
+import com.danilian.speakide.audio.AudioFormat
 import io.mockk.unmockkConstructor
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
@@ -10,11 +12,12 @@ import org.vosk.Model
 import org.vosk.Recognizer
 import java.io.FileNotFoundException
 
+private val TEST_FORMAT = AudioFormat(sampleRate = 44100, channels = 1, bitsPerSample = 16)
+
 class VoskProviderTest {
 
     @AfterEach
     fun tearDown() {
-        // Clean up constructor mocks after each test.
         unmockkConstructor(Model::class)
         unmockkConstructor(Recognizer::class)
     }
@@ -46,7 +49,7 @@ class VoskProviderTest {
     @Test
     fun `transcribe returns empty result for empty audio`() = runBlocking {
         val provider = VoskProvider("")
-        val result = provider.transcribe(ByteArray(0), null)
+        val result = provider.transcribe(AudioData(ByteArray(0), TEST_FORMAT), null)
         assertEquals("", result.text)
     }
 
@@ -54,7 +57,7 @@ class VoskProviderTest {
     fun `transcribe throws IllegalArgumentException when modelPath is blank`() {
         val provider = VoskProvider("")
         assertThrows<IllegalArgumentException> {
-            runBlocking { provider.transcribe(ByteArray(100), null) }
+            runBlocking { provider.transcribe(AudioData(ByteArray(100), TEST_FORMAT), null) }
         }
     }
 
@@ -62,7 +65,7 @@ class VoskProviderTest {
     fun `transcribe throws FileNotFoundException when model directory does not exist`() {
         val provider = VoskProvider("/nonexistent/path/to/model")
         assertThrows<FileNotFoundException> {
-            runBlocking { provider.transcribe(ByteArray(100), null) }
+            runBlocking { provider.transcribe(AudioData(ByteArray(100), TEST_FORMAT), null) }
         }
     }
 
@@ -71,7 +74,7 @@ class VoskProviderTest {
         val provider = VoskProvider("/some/path")
         provider.dispose()
         assertThrows<IllegalStateException> {
-            runBlocking { provider.transcribe(ByteArray(100), null) }
+            runBlocking { provider.transcribe(AudioData(ByteArray(100), TEST_FORMAT), null) }
         }
     }
 }
