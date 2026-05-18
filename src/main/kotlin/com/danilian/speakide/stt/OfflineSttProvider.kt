@@ -54,4 +54,12 @@ abstract class OfflineSttProvider<R : Any>(
     protected abstract fun validatePath(path: String)
 
     protected abstract suspend fun loadResource(path: String): R
+
+    protected abstract fun releaseResource(resource: R)
+
+    override fun dispose() {
+        disposed = true
+        resource?.let { releaseResource(it) }
+        resource = null
+    }
 }

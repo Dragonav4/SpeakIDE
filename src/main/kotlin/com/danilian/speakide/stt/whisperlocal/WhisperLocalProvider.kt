@@ -2,6 +2,7 @@ package com.danilian.speakide.stt.whisperlocal
 
 import com.danilian.speakide.audio.AudioData
 import com.danilian.speakide.audio.AudioResampler
+import com.danilian.speakide.settings.SpeakIdeConstants
 import com.danilian.speakide.stt.OfflineSttProvider
 import com.danilian.speakide.stt.SttResult
 import com.danilian.speakide.stt.WhisperHallucinations
@@ -65,7 +66,7 @@ class WhisperLocalProvider(modelPath: String) : OfflineSttProvider<Pair<WhisperJ
             params.printSpecial = false
             params.suppressBlank = true
             params.suppressNonSpeechTokens = true
-            params.language = language?.takeIf { it != "auto" } ?: "auto"
+            params.language = language?.takeIf { it != SpeakIdeConstants.AUTO_LANGUAGE } ?: SpeakIdeConstants.AUTO_LANGUAGE
 
             val res = w.full(ctx, params, floatData, floatData.size)
             if (res != 0) {

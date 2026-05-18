@@ -45,6 +45,7 @@ class AudioCapture(
                     silenceDetector = silenceDetector,
                     onMicDenied = {
                         onMicDenied()
+                        // TODO: detect actual OS for the error message
                         onError(SecurityException("Microphone access denied by macOS"))
                     }
                 )

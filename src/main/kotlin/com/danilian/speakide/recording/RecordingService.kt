@@ -87,7 +87,7 @@ class RecordingService : Disposable {
 
     private suspend fun transcribe(audio: AudioData, project: Project?, editor: Editor?) {
         try {
-            val lang = SpeakIdeSettings.getInstance().state.language.takeUnless { it == "auto" }
+            val lang = SpeakIdeSettings.getInstance().state.language.takeUnless { it == SpeakIdeConstants.AUTO_LANGUAGE }
             val transcriptionService = ApplicationManager.getApplication()
                 .getService(TranscriptionService::class.java)
             val text = transcriptionService.transcribe(audio, lang).text.trim()

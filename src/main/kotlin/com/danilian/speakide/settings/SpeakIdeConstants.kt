@@ -18,5 +18,7 @@ object SpeakIdeConstants {
 
     val CAPTURE_FORMAT = AudioFormat(SAMPLE_RATE, CHANNELS, BITS_PER_SAMPLE)
 
-    val SUPPORTED_LANGUAGES = listOf("auto", "en", "ru", "de", "fr", "es", "zh", "ja")
+    const val AUTO_LANGUAGE = "auto"
+
+    val SUPPORTED_LANGUAGES = listOf(AUTO_LANGUAGE, "en", "ru", "de", "fr", "es", "zh", "ja")
 }

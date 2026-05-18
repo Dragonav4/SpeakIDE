@@ -3,6 +3,7 @@ package com.danilian.speakide.stt.openai
 import com.danilian.speakide.audio.AudioData
 import com.danilian.speakide.audio.toWav
 import com.danilian.speakide.settings.SecureStorage
+import com.danilian.speakide.settings.SpeakIdeConstants
 import com.danilian.speakide.settings.SpeakIdeSettings
 import com.danilian.speakide.stt.SttProvider
 import com.danilian.speakide.stt.SttResult
@@ -59,7 +60,7 @@ class OpenAiWhisperProvider(
                                 append(HttpHeaders.ContentDisposition, "filename=\"audio.wav\"")
                             })
                             append("model", model)
-                            if (language != null && language != "auto") {
+                            if (language != null && language != SpeakIdeConstants.AUTO_LANGUAGE) {
                                 append("language", language)
                             }
                             append("response_format", "json")
