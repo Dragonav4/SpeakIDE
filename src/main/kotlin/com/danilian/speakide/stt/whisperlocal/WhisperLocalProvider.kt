@@ -82,11 +82,6 @@ class WhisperLocalProvider(modelPath: String) : OfflineSttProvider<Pair<WhisperJ
         return SttResult(text = text)
     }
 
-    override fun postProcess(result: SttResult): SttResult {
-        if (WhisperHallucinations.isHallucination(result.text)) {
-            LOG.info("WhisperLocalProvider: filtered out hallucination: ${result.text}")
-            return result.copy(text = "")
-        }
-        return result
-    }
+    override fun postProcess(result: SttResult): SttResult =
+        WhisperHallucinations.filterResult(result, displayName, LOG)
 }

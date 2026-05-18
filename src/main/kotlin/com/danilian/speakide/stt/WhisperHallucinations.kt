@@ -2,6 +2,12 @@ package com.danilian.speakide.stt
 
 object WhisperHallucinations {
 
+    fun filterResult(result: SttResult, providerName: String, log: com.intellij.openapi.diagnostic.Logger): SttResult {
+        if (!isHallucination(result.text)) return result
+        log.info("$providerName: filtered out hallucination: ${result.text}")
+        return result.copy(text = "")
+    }
+
     val KNOWN_PHRASES = listOf(
         "редактор субтитров",
         "корректор",

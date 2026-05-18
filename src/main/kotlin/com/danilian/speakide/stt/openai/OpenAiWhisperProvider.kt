@@ -80,13 +80,8 @@ class OpenAiWhisperProvider(
         return SttResult(text = parsedResponse.text.trim())
     }
 
-    override fun postProcess(result: SttResult): SttResult {
-        if (WhisperHallucinations.isHallucination(result.text)) {
-            LOG.info("OpenAiWhisperProvider: filtered out hallucination: ${result.text}")
-            return result.copy(text = "")
-        }
-        return result
-    }
+    override fun postProcess(result: SttResult): SttResult =
+        WhisperHallucinations.filterResult(result, displayName, LOG)
 
     companion object {
         private val sharedClient: HttpClient by lazy {
