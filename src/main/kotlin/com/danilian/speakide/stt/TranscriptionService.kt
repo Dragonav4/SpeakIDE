@@ -16,6 +16,7 @@ class TranscriptionService : Disposable {
     private var cachedKey: ProviderCacheKey? = null
 
     suspend fun transcribe(audio: AudioData, language: String?): SttResult {
+        if (audio.pcm.isEmpty()) return SttResult(text = "")
         val provider = getProvider()
         val raw = provider.transcribe(audio, language)
         return provider.postProcess(raw)

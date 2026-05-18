@@ -1,9 +1,11 @@
 package com.danilian.speakide.settings
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.bindIntText
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
@@ -11,6 +13,7 @@ import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.layout.ComponentPredicate
 import javax.swing.JPasswordField
+import javax.swing.SwingUtilities
 
 
 class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
@@ -20,10 +23,10 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
     private val apiKeyField = JPasswordField()
 
     init {
-        com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
+        ApplicationManager.getApplication().executeOnPooledThread {
             val key = SecureStorage.getOpenAiKey() ?: ""
             loadedApiKey = key
-            javax.swing.SwingUtilities.invokeLater {
+            SwingUtilities.invokeLater {
                 apiKeyField.text = key
             }
         }
@@ -32,6 +35,11 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
     private lateinit var providerCombo: ComboBox<SttProviderOption>
 
     override fun createPanel(): DialogPanel = panel {
+        sttProviderGroup()
+        detectionAndUiGroup()
+    }
+
+    private fun Panel.sttProviderGroup() {
         group("STT Provider Settings") {
             row("Provider:") {
                 providerCombo = comboBox(SttProviderOption.entries)
@@ -51,7 +59,7 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
                 comboBox(SpeakIdeConstants.SUPPORTED_LANGUAGES)
                     .bindItem(
                         { settings.language },
-                        { settings.language = it ?: "auto" }
+                        { settings.language = it ?: SpeakIdeConstants.AUTO_LANGUAGE }
                     )
                     .comment("Language hint for transcription. \"auto\" lets the provider detect it")
             }.visibleIf(supportsLanguagePredicate)
@@ -72,6 +80,7 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
                     .bindText(settings::whisperModel)
                     .comment("e.g. whisper-1 (OpenAI) or whisper-large-v3-turbo (Groq)")
             }.visibleIf(isWhisperCloudPredicate)
+
             row("Vosk model path:") {
                 textFieldWithBrowseButton(
                     fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()
@@ -89,7 +98,9 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
                     .comment("Download a ggml model (e.g. ggml-base.en.bin) from huggingface and point here")
             }.visibleIf(providerPredicate(SttProviderOption.WHISPER_LOCAL))
         }
+    }
 
+    private fun Panel.detectionAndUiGroup() {
         group("Detection and UI") {
             row {
                 checkBox("Enable silence detection")
@@ -104,14 +115,13 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
                     .bindSelected(settings::showRecordingOverlay)
             }
         }
-
     }
 
     override fun apply() {
         super.apply()
         val currentText = String(apiKeyField.password)
         if (currentText != loadedApiKey) {
-            com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread {
+            ApplicationManager.getApplication().executeOnPooledThread {
                 SecureStorage.setOpenAiKey(currentText)
             }
             loadedApiKey = currentText

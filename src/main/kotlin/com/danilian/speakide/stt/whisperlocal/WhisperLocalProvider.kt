@@ -2,6 +2,7 @@ package com.danilian.speakide.stt.whisperlocal
 
 import com.danilian.speakide.audio.AudioData
 import com.danilian.speakide.audio.AudioResampler
+import com.danilian.speakide.settings.SpeakIdeConstants
 import com.danilian.speakide.stt.OfflineSttProvider
 import com.danilian.speakide.stt.SttResult
 import com.danilian.speakide.stt.WhisperHallucinations
@@ -58,15 +59,7 @@ class WhisperLocalProvider(modelPath: String) : OfflineSttProvider<Pair<WhisperJ
         LOG.debug("WhisperLocalProvider: transcribing ${floatData.size} samples")
 
         val text = withContext(Dispatchers.IO) {
-            val params = WhisperFullParams(WhisperSamplingStrategy.GREEDY)
-            params.printProgress = false
-            params.printRealtime = false
-            params.printTimestamps = false
-            params.printSpecial = false
-            params.suppressBlank = true
-            params.suppressNonSpeechTokens = true
-            params.language = language?.takeIf { it != "auto" } ?: "auto"
-
+            val params = buildWhisperParams(language)
             val res = w.full(ctx, params, floatData, floatData.size)
             if (res != 0) {
                 LOG.warn("Whisper JNI full() returned error code: $res")
@@ -81,11 +74,17 @@ class WhisperLocalProvider(modelPath: String) : OfflineSttProvider<Pair<WhisperJ
         return SttResult(text = text)
     }
 
-    override fun postProcess(result: SttResult): SttResult {
-        if (WhisperHallucinations.isHallucination(result.text)) {
-            LOG.info("WhisperLocalProvider: filtered out hallucination: ${result.text}")
-            return result.copy(text = "")
+    override fun postProcess(result: SttResult): SttResult =
+        WhisperHallucinations.filterResult(result, displayName, LOG)
+
+    private fun buildWhisperParams(language: String?): WhisperFullParams =
+        WhisperFullParams(WhisperSamplingStrategy.GREEDY).apply {
+            printProgress = false
+            printRealtime = false
+            printTimestamps = false
+            printSpecial = false
+            suppressBlank = true
+            suppressNonSpeechTokens = true
+            this.language = language?.takeIf { it != SpeakIdeConstants.AUTO_LANGUAGE } ?: SpeakIdeConstants.AUTO_LANGUAGE
         }
-        return result
-    }
 }
