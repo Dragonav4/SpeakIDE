@@ -3,7 +3,6 @@ package com.danilian.speakide.stt.openai
 import com.danilian.speakide.audio.AudioData
 import com.danilian.speakide.audio.toWav
 import com.danilian.speakide.settings.SecureStorage
-import com.danilian.speakide.settings.SpeakIdeConstants
 import com.danilian.speakide.settings.SpeakIdeSettings
 import com.danilian.speakide.stt.SttProvider
 import com.danilian.speakide.stt.SttResult
