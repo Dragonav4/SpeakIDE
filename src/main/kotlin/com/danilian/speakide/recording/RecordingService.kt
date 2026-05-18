@@ -28,6 +28,9 @@ class RecordingService : Disposable {
     private val notifier = SpeakIdeNotifier()
     private val indicator: RecordingIndicator = RecordingOverlay()
     private val delivery = ResultDelivery(notifier)
+    private val transcriptionService by lazy {
+        ApplicationManager.getApplication().getService(TranscriptionService::class.java)
+    }
 
     @Volatile
     private var state: RecordingState = RecordingState.Idle
@@ -48,25 +51,33 @@ class RecordingService : Disposable {
 
         val capture = AudioCapture(
             silenceDurationMs = settings.silenceThresholdMs.toLong(),
-            onSilenceTimeout = if (settings.silenceDetectionEnabled) {
-                { stopRecording(state as? RecordingState.Recording ?: return@AudioCapture) }
-            } else {
-                {}
-            },
+            onSilenceTimeout = buildSilenceCallback(settings),
             onData = { chunk -> buffer.add(chunk) },
-            onMicDenied = {
-                notifier.notifyMicDenied(project)
-                transitionToIdle()
-            },
-            onError = { ex ->
-                notifier.notifyAudioError(project, ex.message)
-                transitionToIdle()
-            }
+            onMicDenied = { handleMicDenied(project) },
+            onError = { ex -> handleAudioError(project, ex) }
         )
 
         state = RecordingState.Recording(project, editor, capture, buffer)
         if (settings.showRecordingOverlay) indicator.show()
         capture.start()
+    }
+
+    private fun buildSilenceCallback(settings: SpeakIdeSettings.State): () -> Unit {
+        if (!settings.silenceDetectionEnabled) return {}
+        return callback@{
+            val recording = state as? RecordingState.Recording ?: return@callback
+            stopRecording(recording)
+        }
+    }
+
+    private fun handleMicDenied(project: Project?) {
+        notifier.notifyMicDenied(project)
+        transitionToIdle()
+    }
+
+    private fun handleAudioError(project: Project?, ex: Exception) {
+        notifier.notifyAudioError(project, ex.message)
+        transitionToIdle()
     }
 
     private fun stopRecording(current: RecordingState.Recording) {
@@ -81,15 +92,17 @@ class RecordingService : Disposable {
             return
         }
 
+        launchTranscription(pcm, current.project, current.editor)
+    }
+
+    private fun launchTranscription(pcm: ByteArray, project: Project?, editor: Editor?) {
         val audio = AudioData(pcm, SpeakIdeConstants.CAPTURE_FORMAT)
-        scope.launch { transcribe(audio, current.project, current.editor) }
+        scope.launch { transcribe(audio, project, editor) }
     }
 
     private suspend fun transcribe(audio: AudioData, project: Project?, editor: Editor?) {
         try {
             val lang = SpeakIdeSettings.getInstance().state.language.takeUnless { it == SpeakIdeConstants.AUTO_LANGUAGE }
-            val transcriptionService = ApplicationManager.getApplication()
-                .getService(TranscriptionService::class.java)
             val text = transcriptionService.transcribe(audio, lang).text.trim()
             delivery.deliver(text, project, editor)
         } catch (ex: Throwable) {
