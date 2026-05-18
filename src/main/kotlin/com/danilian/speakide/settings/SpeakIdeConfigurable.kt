@@ -5,6 +5,7 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
+import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.bindIntText
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
@@ -34,6 +35,11 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
     private lateinit var providerCombo: ComboBox<SttProviderOption>
 
     override fun createPanel(): DialogPanel = panel {
+        sttProviderGroup()
+        detectionAndUiGroup()
+    }
+
+    private fun Panel.sttProviderGroup() {
         group("STT Provider Settings") {
             row("Provider:") {
                 providerCombo = comboBox(SttProviderOption.entries)
@@ -74,6 +80,7 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
                     .bindText(settings::whisperModel)
                     .comment("e.g. whisper-1 (OpenAI) or whisper-large-v3-turbo (Groq)")
             }.visibleIf(isWhisperCloudPredicate)
+
             row("Vosk model path:") {
                 textFieldWithBrowseButton(
                     fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor()
@@ -91,7 +98,9 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
                     .comment("Download a ggml model (e.g. ggml-base.en.bin) from huggingface and point here")
             }.visibleIf(providerPredicate(SttProviderOption.WHISPER_LOCAL))
         }
+    }
 
+    private fun Panel.detectionAndUiGroup() {
         group("Detection and UI") {
             row {
                 checkBox("Enable silence detection")
@@ -106,7 +115,6 @@ class SpeakIdeConfigurable : BoundConfigurable("SpeakIDE") {
                     .bindSelected(settings::showRecordingOverlay)
             }
         }
-
     }
 
     override fun apply() {
