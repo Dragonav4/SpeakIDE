@@ -59,15 +59,7 @@ class WhisperLocalProvider(modelPath: String) : OfflineSttProvider<Pair<WhisperJ
         LOG.debug("WhisperLocalProvider: transcribing ${floatData.size} samples")
 
         val text = withContext(Dispatchers.IO) {
-            val params = WhisperFullParams(WhisperSamplingStrategy.GREEDY)
-            params.printProgress = false
-            params.printRealtime = false
-            params.printTimestamps = false
-            params.printSpecial = false
-            params.suppressBlank = true
-            params.suppressNonSpeechTokens = true
-            params.language = language?.takeIf { it != SpeakIdeConstants.AUTO_LANGUAGE } ?: SpeakIdeConstants.AUTO_LANGUAGE
-
+            val params = buildWhisperParams(language)
             val res = w.full(ctx, params, floatData, floatData.size)
             if (res != 0) {
                 LOG.warn("Whisper JNI full() returned error code: $res")
@@ -84,4 +76,15 @@ class WhisperLocalProvider(modelPath: String) : OfflineSttProvider<Pair<WhisperJ
 
     override fun postProcess(result: SttResult): SttResult =
         WhisperHallucinations.filterResult(result, displayName, LOG)
+
+    private fun buildWhisperParams(language: String?): WhisperFullParams =
+        WhisperFullParams(WhisperSamplingStrategy.GREEDY).apply {
+            printProgress = false
+            printRealtime = false
+            printTimestamps = false
+            printSpecial = false
+            suppressBlank = true
+            suppressNonSpeechTokens = true
+            this.language = language?.takeIf { it != SpeakIdeConstants.AUTO_LANGUAGE } ?: SpeakIdeConstants.AUTO_LANGUAGE
+        }
 }
