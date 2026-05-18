@@ -34,58 +34,57 @@ class OpenAiWhisperProvider(
 
     override val displayName = "OpenAI Whisper (Cloud)"
     override val requiresNetwork = true
+
     override suspend fun transcribe(audio: AudioData, language: String?): SttResult {
         if (audio.pcm.isEmpty()) return SttResult(text = "")
+        val apiKey = requireApiKey()
+        val wavBytes = audio.toWavBytes()
+        val response = sendTranscriptionRequest(wavBytes, apiKey, language)
+        return parseResponse(response)
+    }
 
-        val apiKey = apiKeyProvider()
-            ?: throw IllegalStateException(
-                "API key is not set. Add it in Settings → Tools → SpeakIDE."
-            )
-
-        val wavBytes = audio.pcm.toWav(
-            sampleRate = audio.format.sampleRate,
-            channels = audio.format.channels,
-            bitsPerSample = audio.format.bitsPerSample,
+    private fun requireApiKey(): String =
+        apiKeyProvider() ?: throw IllegalStateException(
+            "API key is not set. Add it in Settings → Tools → SpeakIDE."
         )
 
-        val response = withContext(Dispatchers.IO) {
+    private fun AudioData.toWavBytes(): ByteArray =
+        pcm.toWav(sampleRate = format.sampleRate, channels = format.channels, bitsPerSample = format.bitsPerSample)
+
+    private suspend fun sendTranscriptionRequest(wavBytes: ByteArray, apiKey: String, language: String?): HttpResponse =
+        withContext(Dispatchers.IO) {
             httpClient.post("$baseUrl/audio/transcriptions") {
                 header(HttpHeaders.Authorization, "Bearer $apiKey")
-                setBody(
-                    MultiPartFormDataContent(
-                        formData {
-                            append("file", wavBytes, Headers.build {
-                                append(HttpHeaders.ContentType, "audio/wav")
-                                append(HttpHeaders.ContentDisposition, "filename=\"audio.wav\"")
-                            })
-                            append("model", model)
-                            if (language != null && language != "auto") {
-                                append("language", language)
-                            }
-                            append("response_format", "json")
-                        }
-                    )
-                )
+                setBody(buildMultipartBody(wavBytes, language))
             }
         }
 
+    private fun buildMultipartBody(wavBytes: ByteArray, language: String?) =
+        MultiPartFormDataContent(
+            formData {
+                append("file", wavBytes, Headers.build {
+                    append(HttpHeaders.ContentType, "audio/wav")
+                    append(HttpHeaders.ContentDisposition, "filename=\"audio.wav\"")
+                })
+                append("model", model)
+                if (language != null && language != SpeakIdeConstants.AUTO_LANGUAGE) {
+                    append("language", language)
+                }
+                append("response_format", "json")
+            }
+        )
+
+    private suspend fun parseResponse(response: HttpResponse): SttResult {
         if (response.status.value !in 200..299) {
-            val errorBody = response.bodyAsText()
-            throw IllegalStateException("API Error (${response.status}): $errorBody")
+            throw IllegalStateException("API Error (${response.status}): ${response.bodyAsText()}")
         }
-
-        val parsedResponse: WhisperResponse = response.body()
-        LOG.debug("OpenAiWhisperProvider: result = ${parsedResponse.text}")
-        return SttResult(text = parsedResponse.text.trim())
+        val parsed: WhisperResponse = response.body()
+        LOG.debug("OpenAiWhisperProvider: result = ${parsed.text}")
+        return SttResult(text = parsed.text.trim())
     }
 
-    override fun postProcess(result: SttResult): SttResult {
-        if (WhisperHallucinations.isHallucination(result.text)) {
-            LOG.info("OpenAiWhisperProvider: filtered out hallucination: ${result.text}")
-            return result.copy(text = "")
-        }
-        return result
-    }
+    override fun postProcess(result: SttResult): SttResult =
+        WhisperHallucinations.filterResult(result, displayName, LOG)
 
     companion object {
         private val sharedClient: HttpClient by lazy {

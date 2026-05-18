@@ -3,6 +3,7 @@ package com.danilian.speakide.stt
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.diagnostic.logger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -54,4 +55,16 @@ abstract class OfflineSttProvider<R : Any>(
     protected abstract fun validatePath(path: String)
 
     protected abstract suspend fun loadResource(path: String): R
+
+    protected abstract fun releaseResource(resource: R)
+
+    override fun dispose() {
+        disposed = true
+        runBlocking {
+            mutex.withLock {
+                resource?.let { releaseResource(it) }
+                resource = null
+            }
+        }
+    }
 }
