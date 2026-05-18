@@ -81,13 +81,20 @@ class AudioCapture(
 }
 
 private class PcmForwardingProcessor(private val onData: (ByteArray) -> Unit) : AudioProcessor {
+
+    companion object {
+        private const val BYTES_PER_SAMPLE = 2
+        private const val MAX_16BIT = 32767
+        private const val MIN_16BIT = -32768
+    }
+
     override fun process(event: AudioEvent): Boolean {
         val floats = event.floatBuffer
-        val pcm = ByteArray(floats.size * 2)
+        val pcm = ByteArray(floats.size * BYTES_PER_SAMPLE)
         for (i in floats.indices) {
-            val sample = (floats[i] * 32767.0f).toInt().coerceIn(-32768, 32767)
-            pcm[i * 2] = (sample and 0xFF).toByte()
-            pcm[i * 2 + 1] = ((sample shr 8) and 0xFF).toByte()
+            val sample = (floats[i] * MAX_16BIT).toInt().coerceIn(MIN_16BIT, MAX_16BIT)
+            pcm[i * BYTES_PER_SAMPLE] = (sample and 0xFF).toByte()
+            pcm[i * BYTES_PER_SAMPLE + 1] = ((sample shr 8) and 0xFF).toByte()
         }
         onData(pcm)
         return true
